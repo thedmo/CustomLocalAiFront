@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Chat.Core.Modelle;
 
@@ -22,6 +21,16 @@ public sealed class ChatService : IChatService
         _konfiguration = konfiguration;
     }
 
+    public async Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
+    {
+        Unterhaltung unterhaltung = new(
+            Guid.NewGuid(),
+            "Neue Unterhaltung",
+            DateTimeOffset.UtcNow);
+        await _store.SpeichernAsync(unterhaltung, ct);
+        return unterhaltung.Id;
+    }
+
     public async Task<AntwortLauf> SendeNachrichtAsync(
         Guid unterhaltungId,
         string text,
@@ -42,6 +51,8 @@ public sealed class ChatService : IChatService
             anfrage.Dispose();
             throw new InvalidOperationException("Die Antwort-ID ist bereits aktiv.");
         }
+
+        _ = BeobachteLebenszyklusAsync(anfrage);
 
         return new AntwortLauf(antwort.Id, StreameAntwortAsync(anfrage));
     }
@@ -80,7 +91,10 @@ public sealed class ChatService : IChatService
         bool hatTeil = false;
         while (true)
         {
-            StreamSchritt schritt = await LeseNaechstenSchrittAsync(enumerator, anfrage);
+            StreamSchritt schritt = await LeseNaechstenSchrittAsync(
+                enumerator,
+                anfrage,
+                ct);
             if (schritt.Ausnahme is not null)
             {
                 throw schritt.Ausnahme;
@@ -119,7 +133,8 @@ public sealed class ChatService : IChatService
 
     private async Task<StreamSchritt> LeseNaechstenSchrittAsync(
         IAsyncEnumerator<string> enumerator,
-        AktiveAnfrage anfrage)
+        AktiveAnfrage anfrage,
+        CancellationToken aufzaehlung)
     {
         try
         {
@@ -141,6 +156,21 @@ public sealed class ChatService : IChatService
             await SchliesseGestoertAsync(anfrage, ausnahme);
             return StreamSchritt.MitAusnahme(ausnahme);
         }
+        catch (OperationCanceledException) when (
+            anfrage.Lebenszyklus.IsCancellationRequested || aufzaehlung.IsCancellationRequested)
+        {
+            StoerfallException ausnahme = ErzeugeVerbindungsverlust();
+            await SchliesseGestoertAsync(anfrage, ausnahme);
+            return StreamSchritt.MitAusnahme(ausnahme);
+        }
+        catch (OperationCanceledException)
+        {
+            StoerfallException ausnahme = new(
+                Stoerfall.Zeitueberschreitung,
+                "Die Modellanfrage wurde durch ein technisches Zeitlimit beendet.");
+            await SchliesseGestoertAsync(anfrage, ausnahme);
+            return StreamSchritt.MitAusnahme(ausnahme);
+        }
         catch (StoerfallException ausnahme)
         {
             await SchliesseGestoertAsync(anfrage, ausnahme);
@@ -155,6 +185,29 @@ public sealed class ChatService : IChatService
             AntwortZustand.Gestoert,
             ausnahme.Fall,
             ausnahme.Message);
+    }
+
+    private async Task BeobachteLebenszyklusAsync(AktiveAnfrage anfrage)
+    {
+        try
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, anfrage.BeobachtungToken);
+        }
+        catch (OperationCanceledException) when (anfrage.Lebenszyklus.IsCancellationRequested)
+        {
+            await SchliesseGestoertAsync(anfrage, ErzeugeVerbindungsverlust());
+        }
+        catch (OperationCanceledException) when (anfrage.IstAbgeschlossen)
+        {
+            // Ein fachlicher Endzustand beendet nur die interne Beobachtung.
+        }
+    }
+
+    private static StoerfallException ErzeugeVerbindungsverlust()
+    {
+        return new StoerfallException(
+            Stoerfall.ModellserverNichtErreichbar,
+            "Die Verbindung zur Chat-Seite wurde beendet.");
     }
 
     private async Task SchliesseAsync(
@@ -187,99 +240,6 @@ public sealed class ChatService : IChatService
             throw new StoerfallException(
                 Stoerfall.KonfigurationUngueltig,
                 $"Die Nachricht überschreitet die Eingabegrenze von {_konfiguration.Eingabegrenze} Zeichen.");
-        }
-    }
-
-    private sealed class AktiveAnfrage : IDisposable
-    {
-        private readonly object _sperre = new();
-        private bool _abgeschlossen;
-
-        public AktiveAnfrage(
-            Unterhaltung unterhaltung,
-            Antwort antwort,
-            int zeitlimitSekunden,
-            CancellationToken lebenszyklus)
-        {
-            Unterhaltung = unterhaltung;
-            Antwort = antwort;
-            BenutzerAbbruch = new CancellationTokenSource();
-            Zeitlimit = new CancellationTokenSource(TimeSpan.FromSeconds(zeitlimitSekunden));
-            Verknuepft = CancellationTokenSource.CreateLinkedTokenSource(
-                lebenszyklus,
-                BenutzerAbbruch.Token,
-                Zeitlimit.Token);
-            Laufzeit = Stopwatch.StartNew();
-        }
-
-        public Unterhaltung Unterhaltung { get; }
-
-        public Antwort Antwort { get; }
-
-        public CancellationTokenSource BenutzerAbbruch { get; }
-
-        public CancellationTokenSource Zeitlimit { get; }
-
-        public CancellationTokenSource Verknuepft { get; }
-
-        public Stopwatch Laufzeit { get; }
-
-        public CancellationToken Token => Verknuepft.Token;
-
-        public bool IstAbgeschlossen
-        {
-            get
-            {
-                lock (_sperre)
-                {
-                    return _abgeschlossen;
-                }
-            }
-        }
-
-        public bool VersucheTeilHinzuzufuegen(string teil)
-        {
-            lock (_sperre)
-            {
-                if (_abgeschlossen)
-                {
-                    return false;
-                }
-
-                if (Antwort.Zustand == AntwortZustand.Angefordert)
-                {
-                    Antwort.WechsleZu(AntwortZustand.Laeuft);
-                }
-
-                Antwort.FuegeTeilHinzu(teil);
-                return true;
-            }
-        }
-
-        public bool VersucheAbzuschliessen(
-            AntwortZustand zustand,
-            Stoerfall? fall,
-            string? grund)
-        {
-            lock (_sperre)
-            {
-                if (_abgeschlossen)
-                {
-                    return false;
-                }
-
-                Antwort.WechsleZu(zustand, Laufzeit.Elapsed, fall, grund);
-                _abgeschlossen = true;
-                return true;
-            }
-        }
-
-        public void Dispose()
-        {
-            Laufzeit.Stop();
-            Verknuepft.Dispose();
-            Zeitlimit.Dispose();
-            BenutzerAbbruch.Dispose();
         }
     }
 

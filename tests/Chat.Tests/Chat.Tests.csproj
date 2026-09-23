@@ -12,11 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="bunit" Version="2.9.0" />
     <PackageReference Include="xunit.v3.mtp-v2" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Chat.Core/Chat.Core.csproj" />
     <ProjectReference Include="../../src/Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj" />
+    <ProjectReference Include="../../src/LocalAiFront/LocalAiFront.csproj" />
   </ItemGroup>
 </Project>

@@ -36,20 +36,20 @@ Keine Oberfläche (F01 Chat-Seite). AP07 zeigt die Teile deshalb nicht selbst an
 
 ## 3. Betroffene Komponenten und Dateien
 
-- `src/Chat.Core`: `Stoerfall.cs`, `StoerfallException.cs`, `Modelle/Unterhaltung.cs`, `Modelle/Nachricht.cs`, `Modelle/Antwort.cs`, `Modelle/AntwortZustand.cs`, `AntwortLauf.cs`, `IChatService.cs`, `ChatService.cs`, `IModelServerClient.cs`, `IStore.cs`, `Konfiguration.cs`
+- `src/Chat.Core`: `Stoerfall.cs`, `StoerfallException.cs`, `Modelle/Unterhaltung.cs`, `Modelle/Nachricht.cs`, `Modelle/Antwort.cs`, `Modelle/AntwortZustand.cs`, `AntwortLauf.cs`, `AktiveAnfrage.cs`, `IChatService.cs`, `ChatService.cs`, `IModelServerClient.cs`, `IStore.cs`, `Konfiguration.cs`
 - `src/Chat.Adapter.ModelRunner`: `ModelRunnerClient.cs`
-- `tests/Chat.Tests`: `ChatServiceTests.cs`, `FakeModelServerClient.cs`, `SpeicherStore.cs`
+- `tests/Chat.Tests`: `ChatServiceTests.cs`, `ChatServiceAbbruchTests.cs`, `ModelRunnerClientTests.cs`, `FakeModelServerClient.cs`, `SpeicherStore.cs`
 - Unberührt: `web_app/LocalAiFront`, `src/Chat.Store.Sqlite`, `docker_compose.yml`, `web_app/LocalAiFront/appsettings.example.json`, alle `.csproj`, `global.json`
 
 ## 4. Akzeptanzkriterien (prüfbar, vorher festgelegt; beim Review abhaken)
 
-- [ ] Eine Nachricht mit Text liefert mindestens zwei vom Fake-Adapter nacheinander erzeugte Teile einzeln und in derselben Reihenfolge; erst nach dem Ende des Streams steht die Antwort mit Zustand Fertig und Dauer im Store (T02, Backend-Nachweis für Z03 und M06).
-- [ ] Die Antwort-ID ist vor dem Modellaufruf verfügbar; Abbruch vor und während des Streams beendet die Anfrage und speichert Zustand Abgebrochen (T04).
-- [ ] Leerer Text und Text über der Eingabegrenze werden abgewiesen, ohne den Modellserver zu rufen (T09, T10).
-- [ ] Modellserver nicht erreichbar: StoerfallException ModellserverNichtErreichbar mit Grund, kein Absturz, Antwort im Zustand Gestört (T07).
-- [ ] Ungültige Konfiguration (Adresse leer, Modellname leer) verhindert die Modellanfrage mit Störfall KonfigurationUngueltig und nennt den betroffenen Wert (T08).
-- [ ] Zeitlimit überschritten: Zustand Gestört mit Grund Zeitüberschreitung (T11).
-- [ ] Nur die sechs dokumentierten Zustandsübergänge sind möglich (T12).
+- [x] Eine Nachricht mit Text liefert mindestens zwei vom Fake-Adapter nacheinander erzeugte Teile einzeln und in derselben Reihenfolge; erst nach dem Ende des Streams steht die Antwort mit Zustand Fertig und Dauer im Store (T02, Backend-Nachweis für Z03 und M06).
+- [x] Die Antwort-ID ist vor dem Modellaufruf verfügbar; Abbruch vor und während des Streams beendet die Anfrage und speichert Zustand Abgebrochen (T04).
+- [x] Leerer Text und Text über der Eingabegrenze werden abgewiesen, ohne den Modellserver zu rufen (T09, T10).
+- [x] Modellserver nicht erreichbar: StoerfallException ModellserverNichtErreichbar mit Grund, kein Absturz, Antwort im Zustand Gestört (T07).
+- [x] Ungültige Konfiguration (Adresse leer, Modellname leer) verhindert die Modellanfrage mit Störfall KonfigurationUngueltig und nennt den betroffenen Wert (T08).
+- [x] Zeitlimit überschritten: Zustand Gestört mit Grund Zeitüberschreitung (T11).
+- [x] Nur die sechs dokumentierten Zustandsübergänge sind möglich (T12).
 
 ## 5. Schnittstellen und Konfiguration
 
@@ -57,7 +57,7 @@ Keine Oberfläche (F01 Chat-Seite). AP07 zeigt die Teile deshalb nicht selbst an
 
 ## 6. Tests
 
-- Automatisiert (xUnit, Fake-Adapter, Speicher im Arbeitsspeicher): `SendeNachricht_LeererText_WirftStoerfall`, `SendeNachricht_ZuLang_WirftStoerfall`, `SendeNachricht_FakeAdapter_LiefertAntwortIdTeileUndFertig`, `Abbrechen_VorErstemTeil_SpeichertAbgebrochen`, `Abbrechen_WaehrendStream_SpeichertTeilUndAbgebrochen`, `SendeNachricht_AdapterWirft_ZustandGestoert`, `SendeNachricht_Zeitlimit_ZustandGestoert`, `Konfiguration_AdresseLeer_WirftKonfigurationUngueltig`, `AntwortZustand_NurErlaubteUebergaenge`.
+- Automatisiert (xUnit, Fake-Adapter, Speicher im Arbeitsspeicher): die neun ursprünglich festgelegten Tests sowie `Konfiguration_ModellnameLeer_WirftKonfigurationUngueltig`, Lebenszyklusverlust vor und während des Streams, regulärer und vorzeitiger SSE-Abschluss sowie die Unterscheidung von unbekanntem Modell und unbekannter Route.
 - Integration, nicht im Standardlauf: `ModelRunnerClient_EchterServer_LiefertTeile` mit `[Trait("Art", "Integration")]`.
 - Manuell (Jemand, Zeile im Protokoll): `docker compose -f docker_compose.yml up`, Integrationstest gegen den laufenden Model Runner grün; danach `docker compose -f docker_compose.yml down`.
 
@@ -91,13 +91,60 @@ Die Tests aus Feld 6 müssen grün sein. Schreibe deinen Bericht nach AGENTS.md 
 und eine Zeile in agent/protokolle/KI-Einsatz.md. Kein Commit.
 ```
 
-## Ergebnis (das Werkzeug schreibt seinen Bericht nach AGENTS.md Abschnitt 9 hierher; der Mensch prüft und hakt ab)
+## Ergebnis
 
-- Was gebaut wurde: [ ]
-- Tests gelaufen (Ausgabe): [ ]
-- Manuell geprüft (Zeile im Reviewprotokoll): [ ]
-- Review durch: [PS, Pflicht: Schnittstelle 7.3 und Architektur betroffen]
-- KI beteiligt: [Werkzeug, wofür, wie geprüft; Zeile in KI-Einsatz.md]
-- Abweichung vom Konzept: [keine] oder [Kapitel, was, warum; Eintrag in 14.3]
-- Dauer effektiv: [ ]
-- Definition of Done Punkt 1 bis 8: [ ]
+Karte: AP07 Backend-Teil des Haupt-Use-Case streamt und bricht ab
+
+Umgesetzt:
+- ChatService prüft Eingaben und Konfiguration, liefert die Antwort-ID vor dem Modellaufruf, reicht Teile einzeln weiter und speichert genau einen Endzustand.
+- Benutzerabbruch, Gesamtzeitlimit und Verlust des technischen Lebenszyklus werden unterschieden; vorhandene Teile bleiben erhalten.
+- ModelRunnerClient sendet den rollengetrennten Verlauf, liest SSE bis zum zwingenden `[DONE]` und übersetzt Transport-, Stream-, Modell- und Zeitfehler in bereinigte Störfälle.
+- Zustandsübergänge und alle Grenzfälle der Karte sind automatisiert geprüft.
+
+Geänderte Dateien:
+- `src/Chat.Core/ChatService.cs`, `src/Chat.Core/AktiveAnfrage.cs`, `src/Chat.Core/Modelle/Antwort.cs`
+- `src/Chat.Adapter.ModelRunner/ModelRunnerClient.cs`
+- `tests/Chat.Tests/ChatServiceTests.cs`, `tests/Chat.Tests/ChatServiceAbbruchTests.cs`, `tests/Chat.Tests/ModelRunnerClientTests.cs`
+- `agent/use_cases/AP07-backend-senden.md`, `agent/protokolle/KI-Einsatz.md`
+
+Nicht angefasst (bewusst):
+- `web_app/LocalAiFront`, `src/Chat.Store.Sqlite`, `docker_compose.yml`, `appsettings*.json`, alle `.csproj` und `global.json`
+- Nicht zu AP07 gehörende Operationen von `IChatService` für F03 bis F06
+
+Prüfungen:
+- `dotnet build CustomLocalAiFront.slnx --disable-build-servers -m:1`: OK, 0 Warnungen, 0 Fehler
+- `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 16 bestanden, 0 fehlgeschlagen, 1 expliziter Integrationstest nicht ausgeführt
+- `dotnet format` für `Chat.Core`, `Chat.Adapter.ModelRunner` und `Chat.Tests`: keine Änderung
+- `git diff --check`: OK
+
+Selbstprüfung (`agent/Review_Checkliste.md`):
+- Fachlichkeit: ja; Akzeptanzkriterien erfüllt, keine fachliche Erweiterung.
+- Namen und Verständlichkeit: ja; Fachbegriffe und Dateigrössen entsprechen dem StylingGuide.
+- Schichtgrenzen: ja; nur der Adapter kennt HTTP und das Model-Runner-Protokoll.
+- Format, Duplikate und Kommentare: ja; Formatprüfung grün, Kommentar erklärt nur das Beenden der internen Beobachtung.
+- Vier Störfälle: ja; nicht erreichbar, unbekanntes Modell, ungültige Konfiguration und Zeitüberschreitung behandelt.
+- Abbruch und Teilantwort: ja; vor dem ersten Teil und während des Streams geprüft.
+- Eingabegrenzen und Zustandsübergänge: ja; automatisiert geprüft.
+- Umfang und Schnittstellen: ja für die zwei in AP07 verwendeten Operationen; die übrigen dokumentierten Operationen gehören zu späteren Karten.
+- Konfiguration und Installation: ja; keine Konfigurationsdatei oder Installation geändert.
+- Geheimnisse und Datenschutz: ja; keine echten Inhalte, Zugangsdaten oder persönlichen Pfade ergänzt.
+- Netzwerk und Abhängigkeiten: ja; nur lokaler Adapterzugriff, keine neue Abhängigkeit.
+- Systemanweisung und Benutzereingabe: ja; getrennte Parameter und Rollen, Eingabe vor Client-Aufruf geprüft.
+- Oberfläche: nicht anwendbar; Web-Schicht blieb unberührt.
+- Automatisierte Tests: ja; 16 bestanden.
+- Manuelle Tests: nein; echter Model Runner und Abbruch der Modellerzeugung sind durch ein Gruppenmitglied zu prüfen.
+- Nachvollziehbarkeit: ja; KI-Eintrag ergänzt, Commit-Nachricht vorgeschlagen.
+
+Offen, Risiken, Befunde ausserhalb der Karte:
+- Der explizite Integrationstest `ModelRunnerClient_EchterServer_LiefertTeile` und der manuelle Abbruchtest gegen Docker Model Runner stehen aus.
+- Review und Freigabe durch PS stehen aus; das Werkzeug gibt die Karte nicht selbst frei.
+- Die vollständige Solution-Formatprüfung meldet Zeilenenden in `web_app/LocalAiFront/Program.cs`; die Datei liegt ausserhalb von AP07 und wurde nicht geändert. Die drei AP07-Projekte sind formatkonform.
+- `IChatService` enthält für AP07 nur Senden und Abbrechen. Die übrigen Operationen aus `agent/Schnittstellen.md` müssen in den zuständigen Karten ergänzt werden, bevor davon abhängige Funktionen umgesetzt werden.
+
+Vorschlag Commit-Nachricht: `AP07: Backend streamt und verwaltet Abbruch` / `KI: Codex, geprueft von PS`
+
+Definition of Done:
+- Punkte 2 bis 4 und 7 technisch erfüllt.
+- Punkte 1 und 5 benötigen den Lauf gegen Docker Model Runner.
+- Punkt 6 benötigt Review und Freigabe durch PS.
+- Punkt 8 wird nach Review mit effektiver Dauer und Boardstatus abgeschlossen.

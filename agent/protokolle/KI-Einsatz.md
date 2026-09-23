@@ -8,6 +8,8 @@ Nie an ein externes KI-Werkzeug senden: Zugangsdaten, personenbezogene Informati
 |---|---|---|---|---|---|---|
 | 22.09.2026 | AP06 | Claude Code | Entwurf dieser Regeldateien | Vorlage, in AP06 gelesen und geändert | Gruppe liest jede Regel, streicht oder ändert; Zeile 1 im Reviewprotokoll | RL |
 | 23.09.2026 | Vorbereitung AP07 | Codex | Ist-Analyse, Projektgerüste und Abgleich von Design, Schnittstellen, Tests, Karte und README nach Entfernung von LiteLLM | Änderungen im Arbeitsverzeichnis | Diff, Querverweissuche; Build blockiert, weil kein .NET SDK installiert ist | offen |
+| 23.09.2026 | AP07 | Codex | ChatService, Lebenszyklus und Abbruch, Model-Runner-SSE-Adapter, Fehlerabbildung, automatisierte Tests und Kartenbericht | Code und Tests im Arbeitsverzeichnis | Solution-Build 0 Warnungen/0 Fehler; 16 Tests bestanden; AP07-Projekte formatkonform; Integration und menschliches Review offen | offen |
+| 23.09.2026 | F01 | Codex | Chat-Seite mit Streaming und Abbruch, Backend-Verdrahtung, Arbeitsspeicher-Store, Docker-Build und bUnit-Komponententests | Code, Tests und Dokumentation im Arbeitsverzeichnis | 21 Tests bestanden; Formatprüfung grün; Container gebaut und Healthy; manueller Browsertest und Review offen | PS |
 | | | | | | | |
 
 ## Wo KI im Code beteiligt war

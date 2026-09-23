@@ -5,8 +5,8 @@
       "name": "LocalAiFront (Model Runner)",
       "type": "coreclr",
       "request": "launch",
-      "program": "${workspaceFolder}/web_app/LocalAiFront/bin/Debug/net10.0/LocalAiFront.dll",
-      "cwd": "${workspaceFolder}/web_app/LocalAiFront",
+      "program": "${workspaceFolder}/src/LocalAiFront/bin/Debug/net10.0/LocalAiFront.dll",
+      "cwd": "${workspaceFolder}/src/LocalAiFront",
       "envFile": "${workspaceFolder}/.env",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",

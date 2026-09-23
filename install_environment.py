@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PROJECT_DIR = ROOT / "web_app" / "LocalAiFront"
+PROJECT_DIR = ROOT / "src" / "LocalAiFront"
 ENV_FILE = ROOT / ".env"
 
 

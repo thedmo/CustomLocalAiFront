@@ -1,0 +1,162 @@
+@page "/"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IChatService ChatService
+
+<PageTitle>Lokaler KI-Chat</PageTitle>
+
+<h1>Lokaler KI-Chat</h1>
+
+<section class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite">
+  @if (_eintraege.Count == 0)
+  {
+    <p class="text-secondary">Stelle deine erste Frage.</p>
+  }
+
+  @foreach (ChatEintrag eintrag in _eintraege)
+  {
+    <article class="chat-nachricht @(eintrag.IstBenutzer ? "chat-benutzer" : "chat-assistent")">
+      <strong>@(eintrag.IstBenutzer ? "Du" : "Assistent")</strong>
+      <p>@eintrag.Text</p>
+      @if (eintrag.IstAbgebrochen)
+      {
+        <small>Antwort abgebrochen</small>
+      }
+    </article>
+  }
+</section>
+
+<div class="chat-eingabe">
+  <label for="nachricht" class="form-label">Nachricht</label>
+  <textarea id="nachricht"
+            class="form-control"
+            rows="3"
+            maxlength="4001"
+            placeholder="Nachricht eingeben …"
+            @bind="_eingabe"
+            @bind:event="oninput"
+            disabled="@_sendet"></textarea>
+
+  <div class="chat-aktionen">
+    <button id="senden"
+            type="button"
+            class="btn btn-primary"
+            @onclick="SendeAsync"
+            disabled="@(_sendet || string.IsNullOrWhiteSpace(_eingabe))">
+      Senden
+    </button>
+
+    @if (_sendet)
+    {
+      <button id="abbrechen"
+              type="button"
+              class="btn btn-outline-secondary"
+              @onclick="AbbrechenAsync"
+              disabled="@(_aktiveAntwortId is null)">
+        Abbrechen
+      </button>
+    }
+  </div>
+</div>
+
+<p id="chat-status" class="chat-status">@_status</p>
+
+@if (_fehler is not null)
+{
+  <p class="alert alert-danger" role="alert">@_fehler</p>
+}
+
+@code {
+  private readonly CancellationTokenSource _lebenszyklus = new();
+  private readonly List<ChatEintrag> _eintraege = [];
+  private Guid _unterhaltungId;
+  private Guid? _aktiveAntwortId;
+  private string _eingabe = string.Empty;
+  private string _status = "Bereit";
+  private string? _fehler;
+  private bool _sendet;
+  private bool _abbruchAngefordert;
+
+  protected override async Task OnInitializedAsync()
+  {
+    _unterhaltungId = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+  }
+
+  private async Task SendeAsync()
+  {
+    if (_sendet || string.IsNullOrWhiteSpace(_eingabe))
+    {
+      return;
+    }
+
+    _sendet = true;
+    _abbruchAngefordert = false;
+    _fehler = null;
+    _status = "Antwort wird erstellt …";
+    string text = _eingabe;
+
+    try
+    {
+      AntwortLauf lauf = await ChatService.SendeNachrichtAsync(
+        _unterhaltungId,
+        text,
+        _lebenszyklus.Token);
+      _eingabe = string.Empty;
+      _aktiveAntwortId = lauf.AntwortId;
+      _eintraege.Add(new ChatEintrag(true, text));
+      ChatEintrag antwort = new(false, string.Empty);
+      _eintraege.Add(antwort);
+
+      await foreach (string teil in lauf.Teile.WithCancellation(_lebenszyklus.Token))
+      {
+        antwort.Text += teil;
+        await InvokeAsync(StateHasChanged);
+      }
+
+      antwort.IstAbgebrochen = _abbruchAngefordert;
+      _status = _abbruchAngefordert ? "Antwort abgebrochen" : "Bereit";
+    }
+    catch (StoerfallException ausnahme)
+    {
+      _fehler = ausnahme.Message;
+      _status = "Störung";
+    }
+    catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
+    {
+      // Beim Verlassen der Seite ist keine weitere Anzeige nötig.
+    }
+    finally
+    {
+      _aktiveAntwortId = null;
+      _sendet = false;
+    }
+  }
+
+  private async Task AbbrechenAsync()
+  {
+    if (_aktiveAntwortId is not Guid antwortId)
+    {
+      return;
+    }
+
+    _abbruchAngefordert = true;
+    _status = "Antwort wird abgebrochen …";
+    await ChatService.AbbrechenAsync(antwortId, CancellationToken.None);
+  }
+
+  public ValueTask DisposeAsync()
+  {
+    _lebenszyklus.Cancel();
+    _lebenszyklus.Dispose();
+    return ValueTask.CompletedTask;
+  }
+
+  private sealed class ChatEintrag(bool istBenutzer, string text)
+  {
+    public bool IstBenutzer { get; } = istBenutzer;
+
+    public string Text { get; set; } = text;
+
+    public bool IstAbgebrochen { get; set; }
+  }
+}

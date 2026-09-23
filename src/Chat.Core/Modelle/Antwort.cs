@@ -2,7 +2,7 @@ namespace Chat.Core.Modelle;
 
 public sealed class Antwort
 {
-    private static readonly HashSet<(AntwortZustand Von, AntwortZustand Nach)> ErlaubteUebergaenge =
+    private static readonly HashSet<(AntwortZustand Von, AntwortZustand Nach)> _erlaubteUebergaenge =
     [
         (AntwortZustand.Angefordert, AntwortZustand.Laeuft),
         (AntwortZustand.Angefordert, AntwortZustand.Abgebrochen),
@@ -47,7 +47,7 @@ public sealed class Antwort
         Stoerfall? fall = null,
         string? grund = null)
     {
-        if (!ErlaubteUebergaenge.Contains((Zustand, neuerZustand)))
+        if (!_erlaubteUebergaenge.Contains((Zustand, neuerZustand)))
         {
             throw new InvalidOperationException(
                 $"Zustandsübergang von {Zustand} nach {neuerZustand} ist nicht erlaubt.");
