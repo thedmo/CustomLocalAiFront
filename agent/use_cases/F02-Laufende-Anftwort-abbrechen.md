@@ -1,12 +1,12 @@
 # Karte F02: Laufende Antwort abbrechen
 
-| Feld | Inhalt |
-|---|---|
-| Verantwortlich | [festzulegen] |
-| Halbtag | [festzulegen] |
-| Referenz | F02; Z03; M06 |
-| Quellen | `agent/Use_Cases.md` F02 und Erweiterung 4a; `agent/Design.md` Datenfluss und Abbruch; `agent/Schnittstellen.md` `AbbrechenAsync` und Antwortzustände |
-| Testfälle | T04 aus `agent/Testfaelle.md` |
+| Feld           | Inhalt                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verantwortlich | [festzulegen]                                                                                                                                         |
+| Halbtag        | [festzulegen]                                                                                                                                         |
+| Referenz       | F02; Z03; M06                                                                                                                                         |
+| Quellen        | `agent/Use_Cases.md` F02 und Erweiterung 4a; `agent/Design.md` Datenfluss und Abbruch; `agent/Schnittstellen.md` `AbbrechenAsync` und Antwortzustände |
+| Testfälle      | T04 aus `agent/Testfaelle.md`                                                                                                                         |
 
 ## 1. Ziel (ein Satz)
 

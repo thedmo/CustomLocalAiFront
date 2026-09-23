@@ -10,7 +10,7 @@ Entwurf für den ersten Probelauf des Workflows am Mittwoch 23.09.2026. Benjamin
 | Quellen | `agent/Use_Cases.md` Haupt-Use-Case Standardablauf 1 bis 6 und Erweiterungen 2a, 2b, 3a; `agent/Design.md` Komponenten und Datenfluss; `agent/Schnittstellen.md` IChatService, IModelServerClient, Konfiguration |
 | Testfälle | T02, T04, T07, T08, T09, T10, T11, T12 aus `agent/Testfaelle.md` |
 
-**READY-Status:** fachlich und technisch abgeglichen. Vor der Code-Umsetzung muss ein Gruppenmitglied noch bestätigen, dass das Zielbild aus `agent/Design.md` in das Masterkonzept Kapitel 7 und 14.3 übernommen wurde und dass der erweiterte Umfang mit neun automatisierten Tests in einen Halbtag passt. Andernfalls wird AP07 vor Beginn in Teilkarten getrennt. Bis dahin ist die Karte gemäss `AGENTS.md` Abschnitt 6 blockiert.
+**READY-Status:** fachlich und vom Gruppenmitglied freigegeben. Das Zielbild wurde in das Masterkonzept übernommen und der Umfang mit neun automatisierten Tests für einen Halbtag bestätigt. Die Code-Umsetzung kann beginnen, sobald das .NET 10 SDK installiert ist.
 
 ## 1. Ziel (ein Satz)
 
@@ -62,8 +62,7 @@ Projektplan Blatt Arbeitspakete, AP07, Status In Arbeit ab Mi 10:30, Verantwortl
 - `Design.md`, `Schnittstellen.md`, `Use_Cases.md`, `Testfaelle.md` und diese Karte verwenden denselben Vertrag: Antwort-ID vor dem Stream, serviceverwalteter Abbruch und sechs erlaubte Zustandsübergänge.
 - `GET /status` ist aus AP07 entfernt, weil dafür die in dieser Karte bewusst unberührte Web-Schicht nötig wäre.
 - Technischer Blocker auf dem geprüften Rechner: Es ist kein .NET SDK installiert. Vor der Umsetzung .NET 10 SDK installieren und `dotnet --info` prüfen.
-- Freigabeblocker: Das Masterkonzept ist nicht im Repository vorhanden und laut `Design.md` noch nicht nachgeführt. Ein Gruppenmitglied muss die Übernahme in Kapitel 7 und 14.3 bestätigen.
-- Grössenblocker: Die Schätzung von einem Halbtag muss für Core, Abbruch, neun Tests und echten SSE-Adapter bestätigt oder vor Beginn in Teilkarten aufgeteilt werden.
+- Fachliche Freigabe: Das Gruppenmitglied hat die Übernahme des Zielbilds und die Schätzung von einem Halbtag am 23.09.2026 bestätigt.
 - Prüfungen der Vorbereitung: `git diff --check` ohne Fehler. `dotnet build`, `dotnet test` und `dotnet format --verify-no-changes` konnten nicht starten; alle drei melden, dass kein kompatibles .NET SDK installiert ist.
 
 ---
