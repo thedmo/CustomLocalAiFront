@@ -22,7 +22,7 @@ Dieses Verzeichnis ist der Vorschlag für die Wurzel des Repositorys (Arbeitspak
 | `agent/Use_Cases.md`                           | Das Was: Funktionsliste, nichtfunktionale Anforderungen, Haupt-Use-Case F01 mit SSD und Zuständen, Ziele mit Nachweis; Export aus dem Konzept     | Konzept 4, 5      |
 | `agent/Design.md`                              | Das Wie: Architektur, Komponenten, Klassendiagramm, Datenfluss, Konfiguration, Oberfläche, Daten; Export aus dem Konzept, Diagramme als Mermaid   | Konzept 7 bis 9   |
 | `agent/Testfaelle.md`                          | Nummerierte Testfälle, funktional und nichtfunktional, mit Art und Nachweis; Karten verweisen auf die Nummern                                     | Konzept 11, S. 12 |
-| `docker_compose.yml`                           | Anwendung mit direkter Anbindung an Docker Model Runner                                                                                           | Konzept 6.5, 12   |
+| `docker_compose.yml`                           | Compose-Konfiguration für Anwendung und Docker Model Runner                                                                                       | Konzept 6.5, 12   |
 
 ## Der ganze Workflow: vom Konzept zum Commit
 
@@ -44,8 +44,7 @@ Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
 002_Umsetzung/
   AGENTS.md                    Einstieg für jedes KI-Werkzeug (Folie 10: zentral in der Root), zeigt auf agent/
   README.md                    diese Datei
-  .editorconfig, .gitignore, docker_compose.yml, global.json
-  CustomLocalAiFront.slnx       Lösung für Web, Core, Adapter und Tests
+  .editorconfig, .gitignore, appsettings.example.json, docker_compose.yml, global.json [AP06]
   agent/                       alles, was das Werkzeug und die Menschen für eine Karte brauchen, an einem Ort
     README.md                  Leseordnung und Zweck jeder Datei
     Ablauf.md, DoR_DoD.md, StylingGuide.md, Review_Checkliste.md      Regeln (fest)
@@ -84,7 +83,7 @@ dotnet run
 ### Produktion / gesamter Stack (Docker)
 
 ```
-docker compose -f docker_compose.yml up      Anwendung; Docker Desktop stellt den Model Runner bereit
+docker compose -f docker_compose.yml up      Anwendung; Docker Desktop stellt den Model Runner bereit und startet diesen.
 dotnet test                                  alle Tests
 dotnet format                                Formatierung nach .editorconfig
 ```
