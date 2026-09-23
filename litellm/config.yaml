@@ -1,8 +1,0 @@
-model_list:
-  - model_name: llm
-    litellm_params:
-      model: os.environ/MODEL_NAME
-      # custom_llm_provider statt "openai/"-Praefix im Modellnamen, da der Modellname selbst aus MODEL_NAME kommt
-      custom_llm_provider: openai
-      api_base: os.environ/MODEL_RUNNER_URL
-      api_key: "not-needed"
