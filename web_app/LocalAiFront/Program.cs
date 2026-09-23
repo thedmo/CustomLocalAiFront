@@ -7,11 +7,14 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Bindet an LiteLLM als OpenAI-kompatiblen Endpunkt; BaseUrl unterscheidet sich je nach Umgebung (siehe appsettings*.json).
-builder.Services.AddHttpClient("LiteLlm", client =>
+builder.Services.AddHttpClient("ModelRunner", client =>
 {
-    var baseUrl = builder.Configuration["LiteLlm:BaseUrl"]
-        ?? throw new InvalidOperationException("Configuration value 'LiteLlm:BaseUrl' is missing.");
-    client.BaseAddress = new Uri(baseUrl);
+    var baseUrl = builder.Configuration["MODEL_RUNNER_URL"]
+        ?? builder.Configuration["Chat:AdresseModellserver"]
+        ?? throw new InvalidOperationException(
+            "Configuration value 'MODEL_RUNNER_URL' is missing.");
+
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
 });
 
 var app = builder.Build();
