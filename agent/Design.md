@@ -337,7 +337,11 @@ Die Chat-UI wird vollständig selbst entwickelt. LiteLLM liefert keine Chatoberf
 
 ## Mockup
 
-Das Mockup zeigt eine Seite mit drei Bereichen: links die Liste der Unterhaltungen mit Titel und Datum (F03, F04, F05), in der Mitte der Verlauf mit Nachrichten und Antworten, unten das Eingabefeld mit einem Knopf, der je nach Zustand Senden oder Abbrechen heisst (F01, F02). Eine Statuszeile über dem Eingabefeld zeigt Meldungen mit Grund (F06). Die sieben Bedienabläufe von S. 12 sind damit je einem Element zugeordnet. Zwei Fensterbreiten: die Liste klappt auf schmalen Bildschirmen ein. Handskizze: \[Pascal, AP08\].
+Das Mockup zeigt eine Seite mit drei Bereichen: links die Liste der Unterhaltungen mit Titel und Datum (F03, F04, F05), in der Mitte der Verlauf mit Nachrichten und Antworten, unten das Eingabefeld mit einem Knopf, der je nach Zustand Senden oder Abbrechen heisst (F01, F02). Eine Statuszeile über dem Eingabefeld zeigt Meldungen mit Grund (F06). Die sieben Bedienabläufe von S. 12 sind damit je einem Element zugeordnet. Zwei Fensterbreiten: die Liste klappt auf schmalen Bildschirmen ein.
+
+![Mockup der eigenen Chatoberfläche: Desktop mit Unterhaltungsliste, laufender Antwort und Abbrechen; Mobilansicht mit eingeklappter Liste, neuer Unterhaltung und Senden.](bilder/20260923-001-KI-Chat-Mockup.png)
+
+Abbildung: Desktop während einer laufenden Antwort und Mobilansicht einer neuen Unterhaltung. KI-generierter Gestaltungsentwurf mit neutralen Farben und Logo-Platzhalter; das freigegebene HFU Corporate Design ist noch anzuwenden. Die Texte sind illustrative Platzhalter. Erstellt mit dem integrierten Imagegen-Werkzeug; [verwendeter Prompt](bilder/20260923-001-KI-Chat-Mockup-Prompt.txt).
 
 ## Corporate-Design
 
