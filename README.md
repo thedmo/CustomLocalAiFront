@@ -6,35 +6,35 @@ Dieses Verzeichnis ist der Vorschlag für die Wurzel des Repositorys (Arbeitspak
 
 ## Verbindliche Regeln
 
-| Datei | Zweck | Pflicht aus |
-|---|---|---|
-| `AGENTS.md` (Root) | Verhaltens- und Prozessregeln für KI-Werkzeuge: Umgebung, Ablage, erlaubt, verboten, Unsicherheit, Ablauf, Abbruchkriterien, Berichtsform, Review | S. 18, Folie 10 |
-| `agent/StylingGuide.md` | Codekonventionen für C#, Razor, HTML, CSS, Tests, Git; Muster-Code; gilt für KI-Code und Handcode gleich | S. 18, Folie 11 |
-| `agent/Uebersicht.md` | Wie das Setup zusammenhängt: Dokumentfluss zwischen Konzept, Plan und Repository, Phasen mit ihren Dateien, Änderungsrechte | Folie 10 |
-| `agent/Ablauf.md` | Projektmethode: wer macht was wann, als Tabelle und Sequenz | Folie 10 |
-| `agent/DoR_DoD.md` | Wann eine Karte begonnen werden darf und wann sie fertig ist | S. 18 |
-| `agent/Use_Case_Karte_Vorlage.md` | Vorlage für jeden Entwicklungsschritt, Felder der Definition of Ready | S. 18 |
-| `agent/Review_Checkliste.md` | Selbstprüfung des Werkzeugs und Review durch Menschen | S. 19, Folie 11 |
-| `agent/protokolle/Test_und_Reviewprotokoll.md` | Manuelle Tests und Reviews mit Mängeln, Korrekturen, Nachprüfung | S. 18 f. |
-| `agent/protokolle/KI-Einsatz.md` | Wofür KI verwendet wurde und wie das Ergebnis geprüft wurde | S. 19 |
-| `agent/Drittkomponenten.md` | Bibliotheken, Images, Modell mit Version, Lizenz, Weitergabe | S. 13 |
-| `agent/Schnittstellen.md` | IChatService, IModelServerClient, IStore, Konfiguration, Zustände; Auszug aus Konzept 7.3 und 7.4 | Konzept 7 |
-| `agent/Use_Cases.md` | Das Was: Funktionsliste, nichtfunktionale Anforderungen, Haupt-Use-Case F01 mit SSD und Zuständen, Ziele mit Nachweis; Export aus dem Konzept | Konzept 4, 5 |
-| `agent/Design.md` | Das Wie: Architektur, Komponenten, Klassendiagramm, Datenfluss, Konfiguration, Oberfläche, Daten; Export aus dem Konzept, Diagramme als Mermaid | Konzept 7 bis 9 |
-| `agent/Testfaelle.md` | Nummerierte Testfälle, funktional und nichtfunktional, mit Art und Nachweis; Karten verweisen auf die Nummern | Konzept 11, S. 12 |
-| `docker-compose.yml` | Gerüst für Anwendung und Model Runner | Konzept 6.5, 12 |
+| Datei                                          | Zweck                                                                                                                                             | Pflicht aus       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `AGENTS.md` (Root)                             | Verhaltens- und Prozessregeln für KI-Werkzeuge: Umgebung, Ablage, erlaubt, verboten, Unsicherheit, Ablauf, Abbruchkriterien, Berichtsform, Review | S. 18, Folie 10   |
+| `agent/StylingGuide.md`                        | Codekonventionen für C#, Razor, HTML, CSS, Tests, Git; Muster-Code; gilt für KI-Code und Handcode gleich                                          | S. 18, Folie 11   |
+| `agent/Uebersicht.md`                          | Wie das Setup zusammenhängt: Dokumentfluss zwischen Konzept, Plan und Repository, Phasen mit ihren Dateien, Änderungsrechte                       | Folie 10          |
+| `agent/Ablauf.md`                              | Projektmethode: wer macht was wann, als Tabelle und Sequenz                                                                                       | Folie 10          |
+| `agent/DoR_DoD.md`                             | Wann eine Karte begonnen werden darf und wann sie fertig ist                                                                                      | S. 18             |
+| `agent/Use_Case_Karte_Vorlage.md`              | Vorlage für jeden Entwicklungsschritt, Felder der Definition of Ready                                                                             | S. 18             |
+| `agent/Review_Checkliste.md`                   | Selbstprüfung des Werkzeugs und Review durch Menschen                                                                                             | S. 19, Folie 11   |
+| `agent/protokolle/Test_und_Reviewprotokoll.md` | Manuelle Tests und Reviews mit Mängeln, Korrekturen, Nachprüfung                                                                                  | S. 18 f.          |
+| `agent/protokolle/KI-Einsatz.md`               | Wofür KI verwendet wurde und wie das Ergebnis geprüft wurde                                                                                       | S. 19             |
+| `agent/Drittkomponenten.md`                    | Bibliotheken, Images, Modell mit Version, Lizenz, Weitergabe                                                                                      | S. 13             |
+| `agent/Schnittstellen.md`                      | IChatService, IModelServerClient, IStore, Konfiguration, Zustände; Auszug aus Konzept 7.3 und 7.4                                                 | Konzept 7         |
+| `agent/Use_Cases.md`                           | Das Was: Funktionsliste, nichtfunktionale Anforderungen, Haupt-Use-Case F01 mit SSD und Zuständen, Ziele mit Nachweis; Export aus dem Konzept     | Konzept 4, 5      |
+| `agent/Design.md`                              | Das Wie: Architektur, Komponenten, Klassendiagramm, Datenfluss, Konfiguration, Oberfläche, Daten; Export aus dem Konzept, Diagramme als Mermaid   | Konzept 7 bis 9   |
+| `agent/Testfaelle.md`                          | Nummerierte Testfälle, funktional und nichtfunktional, mit Art und Nachweis; Karten verweisen auf die Nummern                                     | Konzept 11, S. 12 |
+| `docker-compose.yml`                           | Gerüst für Anwendung und Model Runner                                                                                                             | Konzept 6.5, 12   |
 
 ## Der ganze Workflow: vom Konzept zum Commit
 
-| Schritt | Quelle | Ergebnis | Wer |
-|---|---|---|---|
-| Was und Wie festlegen | Konzept (Word, Master) | Export nach `agent/Use_Cases.md`, `agent/Design.md`, `agent/Schnittstellen.md`; Testfälle nach `agent/Testfaelle.md` | Projektleitung nach jeder Konzeptänderung |
-| Karte anlegen | Projektplan (Arbeitspaket oder Teilschritt) | `agent/use_cases/APxx-titel.md` nach `agent/Use_Case_Karte_Vorlage.md`, acht Felder der Definition of Ready | Karteninhaber |
-| READY prüfen | `agent/DoR_DoD.md` | Karte READY oder Blockiert | Karteninhaber, Daily |
-| Bauen | `AGENTS.md`, `agent/StylingGuide.md`, Karte, `agent/Design.md`, `agent/Schnittstellen.md` | Code, Tests, Diff; Bericht im Abschnitt Ergebnis der Karte; Zeile in `agent/protokolle/KI-Einsatz.md` | KI-Werkzeug mit Karteninhaber |
-| Prüfen | `agent/Testfaelle.md`, `agent/Review_Checkliste.md` | Zeilen im `agent/protokolle/Test_und_Reviewprotokoll.md` (manuelle Tests, Review) | Karteninhaber, Reviewer |
-| DONE | `agent/DoR_DoD.md` | Kontrollkästchen in der Karte, Commit `APxx: ...`, Board Erledigt, Dauer effektiv | Karteninhaber |
-| Abschliessen | Projektplan, Konzept | Soll-Ist im Plan, Abweichungen in Konzept 14.3, Einschränkungen in 14.4 | Projektleitung, Abendblock |
+| Schritt               | Quelle                                                                                    | Ergebnis                                                                                                             | Wer                                       |
+| --------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Was und Wie festlegen | Konzept (Word, Master)                                                                    | Export nach `agent/Use_Cases.md`, `agent/Design.md`, `agent/Schnittstellen.md`; Testfälle nach `agent/Testfaelle.md` | Projektleitung nach jeder Konzeptänderung |
+| Karte anlegen         | Projektplan (Arbeitspaket oder Teilschritt)                                               | `agent/use_cases/APxx-titel.md` nach `agent/Use_Case_Karte_Vorlage.md`, acht Felder der Definition of Ready          | Karteninhaber                             |
+| READY prüfen          | `agent/DoR_DoD.md`                                                                        | Karte READY oder Blockiert                                                                                           | Karteninhaber, Daily                      |
+| Bauen                 | `AGENTS.md`, `agent/StylingGuide.md`, Karte, `agent/Design.md`, `agent/Schnittstellen.md` | Code, Tests, Diff; Bericht im Abschnitt Ergebnis der Karte; Zeile in `agent/protokolle/KI-Einsatz.md`                | KI-Werkzeug mit Karteninhaber             |
+| Prüfen                | `agent/Testfaelle.md`, `agent/Review_Checkliste.md`                                       | Zeilen im `agent/protokolle/Test_und_Reviewprotokoll.md` (manuelle Tests, Review)                                    | Karteninhaber, Reviewer                   |
+| DONE                  | `agent/DoR_DoD.md`                                                                        | Kontrollkästchen in der Karte, Commit `APxx: ...`, Board Erledigt, Dauer effektiv                                    | Karteninhaber                             |
+| Abschliessen          | Projektplan, Konzept                                                                      | Soll-Ist im Plan, Abweichungen in Konzept 14.3, Einschränkungen in 14.4                                              | Projektleitung, Abendblock                |
 
 Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
 
@@ -66,11 +66,31 @@ Abhängigkeiten nur nach unten: `Chat.Web` kennt `Chat.Core`, nie den Adapter od
 
 ## Start (wird in AP06 ergänzt)
 
+### Entwicklung / Debugging (lokal, ausserhalb Docker)
+
+Voraussetzung: LiteLLM und der Modellserver laufen per Compose (siehe unten), da die App sich lokal über `http://localhost:4000` mit LiteLLM verbindet.
+
 ```
-docker compose up          Anwendung und Modellserver
-dotnet test                alle Tests
-dotnet format              Formatierung nach .editorconfig
+python install_environment.py          # einmalig: appsettings.Development.json anlegen, Modell laden
+docker compose -f docker_compose.yml up litellm   # LiteLLM + Model Runner starten
 ```
+
+Danach in VS Code **F5** drücken (nutzt das `https`-Profil aus `web_app/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`) oder:
+
+```
+cd web_app/LocalAiFront
+dotnet run
+```
+
+### Produktion / gesamter Stack (Docker)
+
+```
+docker compose -f docker_compose.yml up      Anwendung, LiteLLM und Modellserver als Container
+dotnet test                                  alle Tests
+dotnet format                                Formatierung nach .editorconfig
+```
+
+Das Gateway ist danach unter `http://localhost:80` erreichbar, LiteLLM unter `http://localhost:4000`. Das zu ladende Modell wird zentral in `.env` über `MODEL_NAME` festgelegt (Vorlage: `.env.example`).
 
 ## Zusammenführung der zwei Entwürfe
 
