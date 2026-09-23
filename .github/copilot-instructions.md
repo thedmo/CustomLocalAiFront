@@ -1,0 +1,1 @@
+GitHub Copilot liest diese Datei automatisch. Die Regeln stehen in `AGENTS.md` im Wurzelverzeichnis; sie gelten vollständig. Vor jeder Änderung: `AGENTS.md` und `agent/README.md` lesen, nur innerhalb einer READY-Karte aus `agent/use_cases/` arbeiten, Bericht nach `AGENTS.md` Abschnitt 9.

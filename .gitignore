@@ -1,0 +1,25 @@
+# Build
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+TestResults/
+
+# Laufzeitdaten: nie im Repository (Konzept 9, AGENTS.md Abschnitt 5)
+data/
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Konfiguration mit echten Werten; nur appsettings.example.json ist versioniert
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+.env
+
+# Betriebssystem
+Thumbs.db
+.DS_Store
