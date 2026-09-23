@@ -8,7 +8,7 @@ RUN dotnet restore src/LocalAiFront/LocalAiFront.csproj
 
 COPY src/ src/
 COPY src/LocalAiFront/ src/LocalAiFront/
-RUN dotnet publish src/LocalAiFront/LocalAiFront.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish src/LocalAiFront/LocalAiFront.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
