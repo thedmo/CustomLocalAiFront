@@ -1,4 +1,4 @@
-# Karte AP07: Backend nimmt eine Nachricht an, streamt und bricht ab (F01, F02, F07)
+# Karte AP07: Backend-Teil des Haupt-Use-Case streamt und bricht ab (F01, F02, F07)
 
 Entwurf für den ersten Probelauf des Workflows am Mittwoch 23.09.2026. Benjamin prüft und ergänzt die Felder, bevor der Auftrag an das Werkzeug geht.
 
@@ -7,18 +7,32 @@ Entwurf für den ersten Probelauf des Workflows am Mittwoch 23.09.2026. Benjamin
 | Verantwortlich | BH |
 | Halbtag | Mi AM (ab 10:30) |
 | Referenz | F01 Nachricht senden, F02 Abbrechen, F07 Konfiguration; Z01 offline, Z02 Konfiguration, Z03 Antwort in Teilen; M05, M06, M09 |
-| Quellen | `agent/Use_Cases.md` Haupt-Use-Case Standardablauf 1 bis 6 und Erweiterungen 2a, 2b, 3a; `agent/Design.md` Komponenten und Datenfluss; `agent/Schnittstellen.md` IChatService, IModelServerClient, Konfiguration |
+| Quellen | `agent/Use_Cases.md` Haupt-Use-Case F01, Standardablauf 1 bis 6 und Erweiterungen 2a, 2b, 3a, 3b, 4a und 4b; `agent/Design.md` Komponenten und Datenfluss; `agent/Schnittstellen.md` IChatService, IModelServerClient, Konfiguration |
 | Testfälle | T02, T04, T07, T08, T09, T10, T11, T12 aus `agent/Testfaelle.md` |
 
-**READY-Status:** fachlich und vom Gruppenmitglied freigegeben. Das Zielbild wurde in das Masterkonzept übernommen und der Umfang mit neun automatisierten Tests für einen Halbtag bestätigt. Die Code-Umsetzung kann beginnen, sobald das .NET 10 SDK installiert ist.
+**READY-Status:** fachlich und vom Gruppenmitglied freigegeben. Das Zielbild wurde in das Masterkonzept übernommen, der Umfang mit automatisierten Tests für einen Halbtag bestätigt und das .NET 10 SDK installiert.
 
 ## 1. Ziel (ein Satz)
 
-Der ChatService nimmt eine Nachricht mit Kennung der Unterhaltung an, prüft sie, liefert vor dem Modellaufruf eine Antwort-ID mit Datenstrom, verwaltet den Abbruch und ruft Docker Model Runner über den Adapter mit geprüfter Konfiguration auf.
+Der ChatService nimmt eine Nachricht mit Kennung der Unterhaltung an, prüft sie, liefert vor dem Modellaufruf eine Antwort-ID und jeden Antwortteil einzeln über einen beobachtbaren Datenstrom, verwaltet den Abbruch und ruft Docker Model Runner über den Adapter mit geprüfter Konfiguration auf.
+
+### Zuordnung zum Haupt-Use-Case
+
+AP07 bildet den Backend-Teil des in `agent/Use_Cases.md` beschriebenen Haupt-Use-Case ab. Der vollständige Bedienablauf entsteht aus den folgenden Karten:
+
+| Schritt des Haupt-Use-Case | Zuständige Karte |
+|---|---|
+| 1 Nachricht eingeben und senden | F01 Chat-Seite |
+| 2 Eingabe prüfen | AP07; Anzeige der Nachricht durch F01 Chat-Seite |
+| 3 Verlauf und Systemanweisung an den Model Runner senden | AP07 |
+| 4 Teile einzeln bereitstellen | AP07; sofort anzeigen und Eingabe sperren durch F01 Chat-Seite |
+| 5 Antwort abschliessen | AP07; dauerhafte Speicherung durch AP09 und technisches Protokoll durch AP12 |
+| 6 Eingabe wieder freigeben | F01 Chat-Seite |
+| Erweiterung 4a laufende Antwort abbrechen | AP07 verwaltet den Abbruch; F01 Chat-Seite bietet die Bedienung und lässt die Teilantwort sichtbar |
 
 ## 2. Abgrenzung (gehört nicht dazu)
 
-Keine Oberfläche (AP08). Keine Persistenz über den Neustart hinaus, Store nur im Arbeitsspeicher (AP09). Kein Protokoll in Datei (AP12). Kein zusätzlicher HTTP-Endpunkt `GET /status`.
+Keine Oberfläche (F01 Chat-Seite). AP07 zeigt die Teile deshalb nicht selbst an, stellt sie der Oberfläche aber einzeln und ohne Sammeln bis zum Abschluss bereit. Keine Persistenz über den Neustart hinaus, Store nur im Arbeitsspeicher (AP09). Kein Protokoll in Datei (AP12). Kein zusätzlicher HTTP-Endpunkt `GET /status`.
 
 ## 3. Betroffene Komponenten und Dateien
 
@@ -29,7 +43,7 @@ Keine Oberfläche (AP08). Keine Persistenz über den Neustart hinaus, Store nur 
 
 ## 4. Akzeptanzkriterien (prüfbar, vorher festgelegt; beim Review abhaken)
 
-- [ ] Eine Nachricht mit Text liefert innerhalb des Zeitlimits mindestens einen Teil; am Ende steht die Antwort mit Zustand Fertig und Dauer im Store (T02).
+- [ ] Eine Nachricht mit Text liefert mindestens zwei vom Fake-Adapter nacheinander erzeugte Teile einzeln und in derselben Reihenfolge; erst nach dem Ende des Streams steht die Antwort mit Zustand Fertig und Dauer im Store (T02, Backend-Nachweis für Z03 und M06).
 - [ ] Die Antwort-ID ist vor dem Modellaufruf verfügbar; Abbruch vor und während des Streams beendet die Anfrage und speichert Zustand Abgebrochen (T04).
 - [ ] Leerer Text und Text über der Eingabegrenze werden abgewiesen, ohne den Modellserver zu rufen (T09, T10).
 - [ ] Modellserver nicht erreichbar: StoerfallException ModellserverNichtErreichbar mit Grund, kein Absturz, Antwort im Zustand Gestört (T07).
@@ -61,9 +75,9 @@ Projektplan Blatt Arbeitspakete, AP07, Status In Arbeit ab Mi 10:30, Verantwortl
 - LiteLLM ist aus Compose und Beispielkonfiguration entfernt. Der bestehende Verbindungstest spricht Docker Model Runner direkt an.
 - `Design.md`, `Schnittstellen.md`, `Use_Cases.md`, `Testfaelle.md` und diese Karte verwenden denselben Vertrag: Antwort-ID vor dem Stream, serviceverwalteter Abbruch und sechs erlaubte Zustandsübergänge.
 - `GET /status` ist aus AP07 entfernt, weil dafür die in dieser Karte bewusst unberührte Web-Schicht nötig wäre.
-- Technischer Blocker auf dem geprüften Rechner: Es ist kein .NET SDK installiert. Vor der Umsetzung .NET 10 SDK installieren und `dotnet --info` prüfen.
+- Das .NET 10 SDK ist installiert; Build und Tests können auf dem Referenzrechner ausgeführt werden.
 - Fachliche Freigabe: Das Gruppenmitglied hat die Übernahme des Zielbilds und die Schätzung von einem Halbtag am 23.09.2026 bestätigt.
-- Prüfungen der Vorbereitung: `git diff --check` ohne Fehler. `dotnet build`, `dotnet test` und `dotnet format --verify-no-changes` konnten nicht starten; alle drei melden, dass kein kompatibles .NET SDK installiert ist.
+- Prüfungen der Vorbereitung: `git diff --check` ohne Fehler; die Umsetzungsprüfungen werden im Ergebnis protokolliert.
 
 ---
 
