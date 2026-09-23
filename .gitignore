@@ -3,9 +3,12 @@ bin/
 obj/
 *.user
 *.suo
+.vscode/
 .vs/
 .idea/
 TestResults/
+publish/
+*.pdb
 
 # Laufzeitdaten: nie im Repository (Konzept 9, AGENTS.md Abschnitt 5)
 data/
@@ -23,3 +26,6 @@ appsettings.*.json
 # Betriebssystem
 Thumbs.db
 .DS_Store
+
+# Python
+__pycache__

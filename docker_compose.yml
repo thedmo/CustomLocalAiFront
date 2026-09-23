@@ -1,0 +1,38 @@
+services:
+  gateway:
+    build:
+      context: ./web_app/LocalAiFront
+      dockerfile: Dockerfile
+    container_name: local-ai-gateway
+    ports:
+      - "80:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      # Basis-URL, über die das Gateway die OpenAI-kompatible API von LiteLLM erreicht
+      - LiteLlm__BaseUrl=http://litellm:4000
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - litellm
+    restart: unless-stopped
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    ports:
+      - "4000:4000"
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M}
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    models:
+      llm:
+        endpoint_var: MODEL_RUNNER_URL
+    restart: unless-stopped
+
+models:
+  llm:
+    model: ${MODEL_NAME:-hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M}
+    context_size: 4096

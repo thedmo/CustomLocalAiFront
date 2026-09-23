@@ -1,0 +1,89 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject IConfiguration Configuration
+
+<PageTitle>LLM Verbindungstest</PageTitle>
+
+<h3>LLM Verbindungstest</h3>
+
+<div class="mb-3">
+    <label for="userInput" class="form-label">Eingabe</label>
+    <textarea id="userInput" class="form-control" rows="3" @bind="userInput" disabled="@isSending"></textarea>
+</div>
+
+<button class="btn btn-primary" @onclick="SendAsync" disabled="@isSending">Senden</button>
+
+<div class="mb-3 mt-3">
+    <label for="responseOutput" class="form-label">Antwort</label>
+    <textarea id="responseOutput" class="form-control" rows="6" readonly>@responseText</textarea>
+</div>
+
+@if (!string.IsNullOrEmpty(errorText))
+{
+    <p class="text-danger">@errorText</p>
+}
+
+@code {
+    private string userInput = string.Empty;
+    private string responseText = string.Empty;
+    private string? errorText;
+    private bool isSending;
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(userInput))
+        {
+            return;
+        }
+
+        isSending = true;
+        errorText = null;
+        responseText = string.Empty;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("LiteLlm");
+            // Modellalias muss in der LiteLLM-Konfiguration existieren.
+            var model = Configuration["LiteLlm:Model"] ?? "llm";
+
+            var request = new
+            {
+                model,
+                messages = new[]
+                {
+                    new { role = "user", content = userInput }
+                }
+            };
+
+            var response = await client.PostAsJsonAsync("/v1/chat/completions", request);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<ChatCompletionResponse>();
+            responseText = result?.Choices?.FirstOrDefault()?.Message?.Content ?? "(keine Antwort erhalten)";
+        }
+        catch (Exception ex)
+        {
+            errorText = $"Fehler bei der Anfrage an LiteLLM: {ex.Message}";
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    private sealed class ChatCompletionResponse
+    {
+        public List<ChatCompletionChoice>? Choices { get; set; }
+    }
+
+    private sealed class ChatCompletionChoice
+    {
+        public ChatMessage? Message { get; set; }
+    }
+
+    private sealed class ChatMessage
+    {
+        public string? Content { get; set; }
+    }
+}
