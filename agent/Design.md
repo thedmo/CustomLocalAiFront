@@ -1,6 +1,6 @@
 # Wie es gebaut wird: Architektur, Oberflaeche, Daten
 
-> Auszug aus dem Konzept `20260921-010-RL-Konzept.docx` fuer Entwickler und KI-Werkzeuge. Das Konzept ist der Master; weicht die Umsetzung ab, wird zuerst das Konzept geaendert (Kapitel 14.3) und dann dieser Auszug neu exportiert. Stand des Exports: siehe Dateidatum.
+> Zielbild vom 23.09.2026 für Entwickler und KI-Werkzeuge, überarbeitet gemäss dem freigegebenen Refactoring-Plan auf Grundlage von `agent/Use_Cases.md` und der bereitgestellten Architekturskizze. Dieses Dokument ist damit kein unveränderter Konzeptauszug mehr. Das Konzept `20260921-010-RL-Konzept.docx` bleibt der Master; der Abgleich und die Übernahme der Architekturänderung durch die Gruppe in Kapitel 7 und 14.3 stehen noch aus. Dieser Auftrag ändert ausschliesslich `agent/Design.md`, keinen Code und keine Betriebskonfiguration. Offene Dokumentabgleiche stehen am Ende.
 
 # Architektur
 
@@ -8,47 +8,60 @@ Wie das System gebaut ist: Schichten und Komponenten, der Datenfluss vom Browser
 
 ## Komponenten
 
-Zielarchitektur des Auftraggebers: Die Kursunterlagen verlangen drei logisch getrennte Komponenten (S. 13, M03) und zeigen auf S. 7 eine mögliche Zielarchitektur. Zuordnung zu unseren Schichten: Chatfrontend = Präsentation (Chat-Seite als Blazor-Komponente im Browser); Backend-Gateway = Anwendung, Anbindung und Datenhaltung in einem Container; lokaler Modellserver = Docker Model Runner im zweiten Container mit dem Modell aus 6.8. Die Regel von S. 7 gilt unverändert: Das Frontend spricht nie direkt mit dem Modellserver, nur der Adapter kennt dessen API. Nachweis für M03 sind das Schichtenmodell in diesem Kapitel und die Design-Sequenz in 7.2; die Whiteboard-Skizze in 3.3 ist dieselbe Architektur auf Containerebene.
+Die drei logisch getrennten Verantwortungsbereiche aus M03 bleiben erkennbar: Chatfrontend, Backend und lokaler Modellserver. Das Backend der eigenen Anwendung wird durch ein separat betriebenes LLM-Gateway ergänzt. LiteLLM ist die gewählte Gateway-Umsetzung; Docker Model Runner oder Ollama stellt den lokalen Modellserver bereit. Beide sind austauschbare Infrastruktur, keine Bestandteile der Fachlogik.
 
-Das System besteht aus vier Schichten auf dem Referenzsystem und zwei mitgelieferten, nicht entwickelten Teilen. Abhängigkeiten zeigen nur nach unten: Die Präsentation kennt den Modellserver nicht, nur der Adapter kennt dessen API. Wird der Modellserver getauscht, ändern sich ein Adapter und die Konfiguration, sonst nichts.
+Die Anwendung enthält Präsentation, Anwendungslogik, einen neutralen LLM-Client und Datenhaltung. Die vollständig selbst entwickelte Chat-Seite verwendet Blazor Interactive Server: Ihre Komponentenlogik läuft zusammen mit dem ChatService im Anwendungsprozess; der Browser empfängt die Anzeige über die Blazor-Verbindung. Die Seite kennt ausschliesslich IChatService. Der ChatService nutzt IModelServerClient und IStore unabhängig voneinander. Der LLM-Client greift nie auf den Store zu.
 
-TODO: Diagramm aktualisieren
+Auf dem Referenzgerät laufen die Blazor-Anwendung und LiteLLM in getrennten Containern. SQLite liegt im persistenten Volume der Anwendung und ist kein eigener Server. Der Modellserver läuft gemäss Zielbild separat auf demselben Gerät: Docker Model Runner als von Docker Desktop bereitgestellter Dienst oder Ollama als lokaler Dienst. Er wird nicht als zweiter Anwendungscontainer vorausgesetzt. Nur die Weboberfläche wird für den lokalen Browser veröffentlicht; Gateway und Modellserver benötigen keinen öffentlichen Internetzugang.
 
-Diagramm: Schichtenmodell des lokalen KI-Chats. Abhängigkeiten nur nach unten; Modellserver und Modell sind mitgeliefert, nicht entwickelt. (im Konzept als Bild, hier als Mermaid; Datei `047_schichtenmodell.png` im Ordner bilder des Projekts)
+Diagramm: Komponenten, Prozessgrenzen und Aufrufwege des Zielbilds. Ersetzt hier die Darstellung zu `047_schichtenmodell.png`; das Bild im Konzept ist noch abzugleichen.
 
 ```mermaid
 flowchart TB
-    subgraph RS["Referenzsystem, Docker Compose"]
+    subgraph RS["Referenzgerät, Verarbeitung vollständig lokal"]
         direction TB
-        P["Präsentation (Browser)<br/>Chat-Seite als Blazor-Komponente (Interactive Server), CSS im HFU-Design, optional Bootstrap<br/>F01 bis F08 bedienen, kein eigenes JavaScript"]
-        A["Anwendung (Backend, ASP.NET Core)<br/>ChatService (Ablauf F01, Prüfung, Zustände), Konfiguration (appsettings.json), die Seite ruft den Service direkt<br/>Systemoperationen sendeNachricht, abbrechen"]
-        AD["Anbindung Modellserver<br/>IModelServerClient (Schnittstelle), Adapter für den Docker Model Runner (OpenAI-kompatible API), HttpClient, CancellationToken<br/>kapselt die API des Modellservers (M05, Adapter-Muster)"]
-        D["Datenhaltung<br/>Entity Framework Core, SQLite-Datei im Container-Volume: Unterhaltung, Nachricht, Antwort, Protokoll ohne Chattext<br/>Z05, Z07"]
-        MS["Modellserver<br/>Docker Model Runner<br/>zweiter Container, Entscheid 6.4"]
-        MO["Modell<br/>Docker-Artefakt mit Digest, Entscheid 6.8"]
-        P --> A --> AD --> D
-        AD -- "HTTP, gestreamt" --> MS
+        B["Browser<br/>Eigene HFU-Chatoberfläche"]
+        subgraph APP["Container: Blazor-Anwendung / Backend"]
+            P["Chat-Seite<br/>Blazor Interactive Server"]
+            A["ChatService über IChatService<br/>Prüfung, Verlauf, Zustände, Chatverwaltung"]
+            AD["OpenAiCompatibleClient über IModelServerClient<br/>HTTP/SSE, Abbruch, Fehlerabbildung"]
+            D["SqliteStore über IStore<br/>EF Core und Protokollschreiber"]
+            P --> A
+            A --> AD
+            A --> D
+        end
+        DB[("Persistentes Anwendungsvolume<br/>SQLite: Unterhaltung, Nachricht, Antwort")]
+        LOG["Separate technische Protokolldatei<br/>ohne Chattext"]
+        G["Container: LLM-Gateway, zunächst LiteLLM<br/>Modellzuordnung, Generierungsparameter,<br/>Streaming und technische Fehlerbehandlung"]
+        MS["Separater lokaler Modellserver<br/>Docker Model Runner als Docker-Desktop-Dienst<br/>oder Ollama als lokaler Dienst"]
+        MO["Lokales Modell<br/>Gewichte"]
+        B <-->|"HTTP / Blazor-Verbindung"| P
+        D --> DB
+        D --> LOG
+        AD <-->|"OpenAI-kompatible HTTP-API / SSE"| G
+        G <-->|"OpenAI-kompatible HTTP-API / SSE"| MS
         MS --> MO
     end
 ```
 
-| Komponente | Schicht | Verantwortung | Schnittstelle | Technik (Kapitel 6) |
+| Komponente | Schicht | Verantwortung | Schnittstelle | Technik im Zielbild |
 |----|----|----|----|----|
-| Chat-Seite | Präsentation | F01 bis F08 bedienen: Eingabe, Anzeige in Teilen, Abbrechen, Liste der Unterhaltungen, Meldungen; Corporate Design, zwei Fensterbreiten | ruft nur IChatService | Blazor-Komponente (Interactive Server), CSS, optional Bootstrap; JavaScript nur für Sonderfälle |
-| ChatService | Anwendung | Ablauf von F01 bis F06: Eingabe prüfen, Verlauf holen, Adapter aufrufen, Teile weiterreichen, Zustände der Antwort setzen, Protokolleintrag schreiben | IChatService (7.3) | C#, per Dependency Injection in die Seite |
-| Konfiguration | Anwendung | Adresse des Modellservers, Modellname, Systemanweisung, Laufzeitparameter, Eingabegrenze, Zeitlimit; Prüfung beim Start | gelesen von ChatService und Adapter | appsettings.json, Umgebungsvariablen (7.4) |
-| IModelServerClient und Adapter | Anbindung | kapselt die API des Modellservers: Anfrage senden, Teile empfangen, Abbruch weitergeben, Fehler auf vier Fälle abbilden | eine Schnittstelle, ein Adapter für den Docker Model Runner (OpenAI-kompatible API) | HttpClient, CancellationToken |
-| Store | Datenhaltung | Unterhaltung, Nachricht, Antwort mit Zustand speichern, laden, löschen; Protokolleintrag ohne Chattext | IStore, vom ChatService | Entity Framework Core, SQLite-Datei im Container-Volume |
-| Modellserver | mitgeliefert | lädt das Modell, erzeugt Text als Datenstrom | OpenAI-kompatible HTTP-API | Docker Model Runner (6.4), zweiter Container |
-| Modell | mitgeliefert | die Gewichte | Docker-Artefakt mit Digest | Entscheid 6.8 |
+| Chat-Seite | Präsentation | F01 bis F06 bedienen: Eingabe, Streaming anzeigen, Abbrechen, Unterhaltungen anlegen, auswählen und löschen, Meldungen; HFU-Design | ruft nur IChatService | eigene Blazor-Komponente (Interactive Server), CSS, optional Bootstrap |
+| ChatService | Anwendung | Eingabe prüfen, Verlauf und Systemanweisung zusammensetzen, Client aufrufen, Teile weiterreichen, Antwortzustände setzen, Chatverwaltung und Speicherung steuern, Anfrageprotokoll veranlassen | IChatService; nutzt IModelServerClient und IStore | C#, Dependency Injection |
+| Anwendungskonfiguration | Anwendung / Anbindung | Gateway-Basisadresse, Modellalias, gegebenenfalls Zugangsdaten; Systemanweisung, Eingabegrenze, Gesamtzeitlimit und Speicherpfade | ChatService und Client lesen jeweils ihre Werte | appsettings.json und Umgebungsvariablen |
+| IModelServerClient / OpenAiCompatibleClient | Anbindung | neutraler HTTP/SSE-Client zum Gateway: Textteile lesen, Abbruch weitergeben, Transport- und Gatewayfehler in Störfälle übersetzen | produktneutrale Schnittstelle; OpenAI-kompatible Chat-Completions-API | HttpClient, CancellationToken; kein LiteLLM-SDK |
+| IStore / SqliteStore | Datenhaltung | Unterhaltung, Nachricht und Antwort speichern, laden und löschen; technische Einträge in separate Datei schreiben | IStore, ausschliesslich vom ChatService genutzt | Entity Framework Core, SQLite und Protokolldatei im persistenten Volume |
+| LLM-Gateway | mitgelieferte Infrastruktur | Modellserver kapseln, Modellalias auf Zielmodell abbilden, Generierungsparameter und technische Zeitlimits verwalten, Streaming vermitteln, technische Modellserverfehler behandeln | OpenAI-kompatible HTTP-API; Administration getrennt vom Chat | zunächst LiteLLM im eigenen Container |
+| Modellserver | mitgelieferte Infrastruktur | Modell laden, Text erzeugen und streamen | OpenAI-kompatible HTTP-API zum Gateway | Docker Model Runner oder Ollama auf dem Referenzgerät |
+| Modell | mitgeliefert | lokale Modellgewichte | vom Modellserver geladen | Modellwahl gemäss Konzept 6.8; Bereitstellung passend zum gewählten Modellserver |
 
 Tabelle : Komponenten und Schichten
 
-Bewusst weggelassen, weil kein Mussziel sie braucht: eigene Benutzerverwaltung (N04, höchstens K03), Vektordatenbank (N08), Zugriff über das Internet (N05). Jede Komponente im Bild bedient mindestens ein Mussziel (Empfehlung des Dozenten vom 21.09.).
+F07 (Konfiguration ändern) und F08 (technisches Protokoll einsehen) sind Betreiberfunktionen. Dafür sind Konfigurationsdateien, gegebenenfalls die LiteLLM-Admin-UI und die technische Protokolldatei vorgesehen; eine eigene Administrationsoberfläche ist nicht erforderlich. Eine Modellauswahl durch Chat-Benutzer bleibt K01. Eigene Benutzerverwaltung, Vektordatenbank, externe KI-Dienste und Betrieb über das Internet gehören nicht zum Mussumfang.
 
-Klassen: Das Klassendiagramm zeigt die Bausteine mit ihren Operationen und die Fachklassen aus dem Konzeptmodell (4.7). Unterhaltung, Nachricht und Antwort werden in 9.1 zu Tabellen; der Zustand der Antwort ist das Enum aus dem Zustandsdiagramm 4.7.6, die erlaubten Übergänge prüft der ChatService. Seite und Service kennen nur Schnittstellen (IModelServerClient, IStore); die Umsetzungen erhalten sie per Dependency Injection.
+Klassen: Das Klassendiagramm zeigt die Bausteine der eigenen Anwendung. Die Seite kennt IChatService, der ChatService kennt IModelServerClient und IStore; die Umsetzungen werden per Dependency Injection zugewiesen. LiteLLM ist ein externer Prozess und keine Klasse der Fachlogik. Unterhaltung, Nachricht und Antwort werden zu Tabellen. Antwortzustände und Übergänge verwaltet ausschliesslich der ChatService. Die Methodennamen folgen hier der Konzeptnotation; im Code tragen asynchrone Methoden das Suffix Async.
 
-Diagramm: Design-Klassendiagramm F01: Bausteine, Fachklassen und Zustand (im Konzept als Bild, hier als Mermaid; Datei `051_klassendiagramm_f01.png` im Ordner bilder des Projekts)
+Diagramm: Design-Klassendiagramm F01 im Zielbild: Bausteine, Fachklassen und Zustand. Die Darstellung zu `051_klassendiagramm_f01.png` im Konzept ist noch abzugleichen.
 
 ```mermaid
 classDiagram
@@ -75,15 +88,26 @@ classDiagram
         +LoescheUnterhaltung(id)
         +Status() Systemstatus
     }
+    class IChatService {
+        <<interface>>
+        +NeueUnterhaltung() Guid
+        +SendeNachricht(id, text, ct) IAsyncEnumerable~string~
+        +Abbrechen(antwortId)
+        +ListeUnterhaltungen()
+        +OeffneUnterhaltung(id)
+        +LoescheUnterhaltung(id)
+        +Status() Systemstatus
+    }
     class Konfiguration {
         <<appsettings.json>>
-        +AdresseModellserver
-        +Modellname
+        +GatewayBasisadresse
+        +Modellalias
+        +GatewayZugangsdaten
         +Systemanweisung
-        +Laufzeitparameter
         +int Eingabegrenze
         +TimeSpan Zeitlimit
         +SpeicherortDb
+        +Protokolldatei
     }
     class IModelServerClient {
         <<interface>>
@@ -97,10 +121,10 @@ classDiagram
         +Loeschen(id)
         +Protokoll(eintrag)
     }
-    class ModelRunnerClient {
+    class OpenAiCompatibleClient {
         <<Adapter>>
         -HttpClient http
-        -adresse, modellname
+        -gatewayBasisadresse, modellalias
         +StreamAntwort(...)
         -fehlerAbbilden() Stoerfall
     }
@@ -132,58 +156,98 @@ classDiagram
         Abgebrochen
         Gestoert
     }
-    ChatSeite ..> ChatService : ruft (DI)
+    ChatSeite ..> IChatService : ruft
+    ChatService ..|> IChatService
     ChatService ..> IModelServerClient : nutzt
     ChatService ..> IStore : nutzt
     ChatService ..> Konfiguration : liest
-    ModelRunnerClient ..|> IModelServerClient
+    OpenAiCompatibleClient ..|> IModelServerClient
+    OpenAiCompatibleClient ..> Konfiguration : liest Verbindungswerte
     SqliteStore ..|> IStore
     IStore ..> Unterhaltung : verwaltet
-    Unterhaltung "1" -- "1..*" Nachricht
+    Unterhaltung "1" -- "0..*" Nachricht
     Nachricht "1" -- "0..1" Antwort
     Antwort --> AntwortZustand : hat
 ```
 
-Muster: Adapter, weil der Modellserver austauschbar bleiben muss (M05): ModelRunnerClient ist der einzige Baustein, der die API des Docker Model Runner kennt. Repository, weil die Datenhaltung hinter IStore liegt und in Tests durch einen Speicher im Arbeitsspeicher ersetzt werden kann. State, weil eine Antwort fünf Zustände mit festen Übergängen hat (4.7.6) und der Zustand als Feld gespeichert wird. Dependency Injection (Skript SE II, Kapitel 9), weil Seite und Service ihre Bausteine nicht selbst erzeugen; in ASP.NET Core ist das der Standardweg.
+Muster: Der Adapter OpenAiCompatibleClient kapselt das gemeinsame OpenAI-kompatible Protokoll, nicht die Besonderheiten eines bestimmten Modellservers. Dessen Anbindung und Konfiguration übernimmt das Gateway. Ein Austausch erfordert bei Einhaltung des unten beschriebenen Vertrags keine Änderung am Anwendungscode (Z02). Repository trennt die Datenhaltung hinter IStore ab. Die Zustandsmaschine mit fünf Antwortzuständen liegt im ChatService; Zustand und Text werden gespeichert. Dependency Injection erlaubt in Tests einen Fake-Client und einen Store im Arbeitsspeicher.
 
 ## Datenfluss Browser bis Modell
 
-Der Datenfluss ist das Systemsequenzdiagramm aus 4.7, aufgelöst in die Bausteine aus 7.1. Jede Zeile hat dort ihren Ursprung: Zeile 1 und 8a sind die zwei Systemoperationen (sendeNachricht, abbrechen), Zeilen 2 bis 5 lösen Schritt 3 des Standardablaufs auf, die Schleife ist Schritt 4, Zeilen 9 und 10 sind Schritt 5 und 6.
+Der Datenfluss löst F01 aus `agent/Use_Cases.md` in die Bausteine des Zielbilds auf. Der ChatService prüft zuerst die Eingabe. Leerer Text wird mit einem Hinweis abgewiesen, zu langer Text mit Angabe der Grenze; es erfolgt kein Aufruf des Clients. Bei gültiger Eingabe lädt der Service den bisherigen Verlauf, setzt die Systemanweisung davor und nimmt die neue Nachricht genau einmal auf. Systemanweisung, Benutzertexte und bisherige Antworten bleiben dabei nach Rollen getrennt.
 
-Diagramm: Designmodell F01 mit echten Bausteinen: Streaming-Schleife, Abbruch, Störung (im Konzept als Bild, hier als Mermaid; Datei `048_design_sequenz_f01.png` im Ordner bilder des Projekts)
+Diagramm: Designmodell F01 im Zielbild mit Streaming, Abbruch und Störungen. Die Darstellung zu `048_design_sequenz_f01.png` im Konzept ist noch abzugleichen.
 
 ```mermaid
 sequenceDiagram
-    participant B as Chat-Seite (Blazor, im Browser)
+    participant B as Browser
+    participant P as Chat-Seite (serverseitig)
     participant S as ChatService
-    participant K as Konfig (appsettings)
     participant ST as Store (EF Core, SQLite)
-    participant A as ModelRunnerClient (Adapter)
-    participant M as Model Runner (Container)
-    B->>S: 1 Klick Senden, SendeNachricht(unterhaltung, text, ct)
-    S->>K: 2 lesen (Modellname, Systemanweisung, Grenze)
-    S->>ST: 3 nachrichtSpeichern, Antwort Zustand=Angefordert
-    S->>A: 4 StreamAntwort(verlauf, systemanweisung, ct)
-    A->>M: 5 POST chat/completions, stream=true
-    loop Teile bis Ende
-        M-->>A: 6 Teil (SSE-JSON)
-        A-->>S: 7 teil(text) als IAsyncEnumerable
-        S-->>B: 8 Teil anzeigen (StateHasChanged, Blazor-Verbindung)
-    end
-    S->>ST: 9 antwortSpeichern(Zustand=Fertig, Dauer), protokollEintrag(ohne Text)
-    S-->>B: 10 Ende, Eingabe frei
-    alt Abbruch während der Schleife
-        B->>S: 8a Klick Abbrechen, CancellationToken auslösen
-        A->>M: 8b HTTP-Anfrage abgebrochen (Token weitergereicht)
-        S->>ST: 8c Zustand=Abgebrochen, Teil bleibt
-    end
-    alt Störung (Server weg, Modell unbekannt, Timeout)
-        A-->>S: 5a Fehler mit Grund
-        S-->>B: 5b Meldung mit Grund, Zustand=Gestört, Eingabe frei
+    participant A as OpenAiCompatibleClient
+    participant G as LLM-Gateway (LiteLLM)
+    participant M as Lokaler Modellserver
+    B->>P: Senden über Blazor-Verbindung
+    P->>S: SendeNachricht(unterhaltungId, text, ct)
+    S->>S: Eingabe und Anwendungskonfiguration prüfen
+    alt Eingabe leer, zu lang oder Konfiguration ungültig
+        S-->>P: Hinweis oder Störfall, kein Client-Aufruf
+        P-->>B: Meldung, Eingabe bleibt erhalten und frei
+    else Anfrage zulässig
+        S->>ST: Bisherigen Verlauf laden
+        ST-->>S: Nachrichten und Antworten in Reihenfolge
+        S->>S: Verlauf und Systemanweisung zusammensetzen
+        S->>ST: Nachricht und Antwort mit Zustand Angefordert speichern
+        Note over B,P: Die Seite zeigt den eigenen Eingabetext als Nachricht und sperrt Senden; Abbrechen bleibt verfügbar.
+        S->>A: StreamAntwort(verlauf, systemanweisung, ct)
+        A->>G: POST chat/completions, Modellalias, messages, stream=true
+        G->>M: Zielmodell und Generierungsparameter, stream=true
+        loop Solange Textteile eintreffen und die Anfrage aktiv ist
+            M-->>G: Antwortteil
+            G-->>A: OpenAI-kompatibles SSE-Ereignis
+            A-->>S: Textteil als IAsyncEnumerable
+            S->>S: Ab erstem Textteil Zustand Laeuft, Text sammeln
+            S-->>P: Textteil
+            P-->>B: Anzeige über Blazor-Verbindung aktualisieren
+        end
+        alt Reguläres Streamende
+            G-->>A: Regulärer Abschluss des SSE-Streams
+            A-->>S: Enumeration erfolgreich beendet
+            S->>ST: Antwort mit Text, Zustand Fertig und Dauer speichern
+        else Benutzerabbruch vor oder nach dem ersten Teil
+            B->>P: Abbrechen
+            P->>S: CancellationToken auslösen
+            S->>A: Abbruch weitergeben
+            A->>G: HTTP-Anfrage und Stream schliessen
+            G->>M: Laufende Modellanfrage abbrechen
+            S->>ST: Teiltext, gegebenenfalls leer, als Abgebrochen speichern
+        else Störung vor oder während der Ausgabe
+            Note over A,M: Gateway-/Modellserverfehler oder unterbrochener Stream
+            A-->>S: Störfall mit bereinigtem Grund
+            S->>ST: Teiltext als Gestoert speichern
+            S-->>P: Verständliche Meldung mit Grund
+        else Gesamtzeitlimit oder endgültiger Blazor-Verbindungsverlust
+            S->>A: Laufende Anfrage abbrechen
+            A->>G: HTTP-Anfrage und Stream schliessen
+            G->>M: Laufende Modellanfrage abbrechen
+            S->>ST: Teiltext als Gestoert speichern
+            S-->>P: Grund, sofern die Seite noch verbunden ist
+        end
+        S->>ST: Technischer Protokolleintrag ohne Chattext
+        S-->>P: Anfrage abgeschlossen, Endzustand im Store
+        P-->>B: Eingabe freigeben, sofern verbunden
     end
 ```
 
-Streaming-Technik: Mit Blazor Interactive Server laufen Chat-Seite und ChatService im selben Prozess. Der Adapter liefert die Teile als IAsyncEnumerable\<string\>, der Service reicht sie durch, die Seite zeigt jeden Teil sofort an (StateHasChanged); der Browser erhält die Änderungen über die bestehende Blazor-Verbindung. Begründung (S. 8 verlangt sie): kein eigener HTTP-Endpunkt und kein zweiter Kanal nötig, Abbruch über einen CancellationToken, der bis zur HTTP-Anfrage an den Model Runner weitergereicht wird. Server-Sent Events oder ein gestreamter HTTP-Response wären nötig, wenn das Frontend ein eigenes Programm wäre; das ist hier nicht der Fall. Grenze: Bricht die Blazor-Verbindung ab, ist die Seite weg; die laufende Antwort wird als Gestört mit Grund Verbindungsverlust gespeichert. Zeitüberschreitung und nicht erreichbaren Modellserver behandelt der Adapter und liefert dem Service einen der vier Störfälle (M09). Rückfall, falls das Streaming nicht rechtzeitig läuft: ganze Antwort ohne Teile, gleicher Ablauf ohne Schleife.
+Die Alternativen im Diagramm sind mögliche Ausgänge derselben Anfrage. Abbruch und Störungen können bereits beim Verbindungsaufbau oder zwischen beliebigen Textteilen eintreten; nach einem Endzustand werden keine weiteren Teile übernommen. Der ChatService speichert genau einen Endzustand und veranlasst einen technischen Abschlusseintrag.
+
+Streaming-Technik: Der Client liest SSE vom Gateway und liefert Textteile als `IAsyncEnumerable<string>`. Der Service reicht diese an die Blazor-Komponente weiter; sie aktualisiert die Anzeige mit StateHasChanged über die bestehende Blazor-Verbindung. Zwischen Chat-Seite und Service ist kein eigener Chat-HTTP-Endpunkt nötig. SSE wird zwischen Client, Gateway und Modellserver verwendet, nicht als zusätzlicher Browserkanal. Streaming ist für Z03 verpflichtend; eine vollständige Antwort erst am Ende anzuzeigen erfüllt die Anforderung nicht.
+
+Abbruch: Ein Benutzerabbruch löst den CancellationToken der laufenden Anfrage aus. Der Client schliesst die HTTP-Anfrage; das Gateway muss die laufende Modellanfrage ebenfalls abbrechen. Das Schliessen des lokalen Streams allein beweist noch keinen Stopp der Modellerzeugung. Die Weitergabe über beide Prozessgrenzen ist deshalb für jede eingesetzte Kombination aus Gateway und Modellserver durch einen Integrationstest nachzuweisen. Teilantwort und Zustand Abgebrochen werden auch bei noch leerem Text gespeichert. Die abschliessende Speicherung darf nicht durch den bereits ausgelösten Anfrage-Token verhindert werden.
+
+Zeitlimit und Verbindung: Das Gesamtzeitlimit verantwortet der ChatService, technische Verbindungszeitlimits das Gateway beziehungsweise der HTTP-Client. Die Abbruchursache bleibt unterscheidbar: Benutzerabbruch ergibt Abgebrochen, Zeitüberschreitung ergibt Gestoert. Ein Stream ohne regulären Abschluss ergibt ebenfalls Gestoert; bereits gelieferte Teile bleiben erhalten. Bei endgültigem Verlust der Blazor-Verbindung wird die Anfrage beendet und als Gestoert mit Grund Verbindungsverlust gespeichert; nach erneutem Öffnen ist der Zustand sichtbar. Automatische Wiederholungen und Modell-Fallbacks sind standardmässig in Client und Gateway deaktiviert, damit eine Anfrage nicht unbemerkt doppelt ausgeführt wird.
+
+Bedienung und Zustände: Nach Erfolg, Abbruch oder behandelter Störung ist die Eingabe wieder frei. Bei Nichterreichbarkeit bleibt der gesendete Text gemäss F01-Erweiterung 3a im Eingabefeld erhalten. Neben den bisherigen Übergängen muss F02 auch Abbruch vor dem ersten Teil erlauben: Angefordert → Abgebrochen. Dieser in der bisherigen Zustandszeichnung fehlende Übergang ist im Masterkonzept nachzuführen; er ist hier ausdrücklich beschrieben und nicht als bereits abgeglichen behauptet.
 
 ## Schnittstellen
 
@@ -192,39 +256,84 @@ Frontend zu Backend: Die Chat-Seite spricht ausschliesslich mit IChatService. Da
 | Methode | Funktion | Eingabe | Ausgabe |
 |----|----|----|----|
 | NeueUnterhaltung() | F03 | keine | Kennung der Unterhaltung |
-| SendeNachricht(unterhaltungId, text, ct) | F01 | Kennung, Text, Abbruch-Token | Datenstrom von Teilen (IAsyncEnumerable\<string\>); am Ende Zustand und Kennung der Antwort |
+| SendeNachricht(unterhaltungId, text, ct) | F01 | Kennung, Text, Abbruch-Token | `IAsyncEnumerable<string>` mit Textteilen; Antwortkennung und Endzustand stehen im Store und sind über OeffneUnterhaltung lesbar |
 | Abbrechen(antwortId) | F02 | Kennung der Antwort | Zustand Abgebrochen; technisch löst die Seite den CancellationToken aus |
 | ListeUnterhaltungen() | F04 | keine | Kennungen, Titel, Datum |
 | OeffneUnterhaltung(id) | F04 | Kennung | Nachrichten und Antworten in Reihenfolge |
 | LoescheUnterhaltung(id) | F05 | Kennung | Bestätigung |
-| Status() | F06, K07 | keine | Modellserver erreichbar, Modellname, Konfiguration gültig |
+| Status() | F06, K07 | keine | Zustand der Modellanbindung über das Gateway, konfigurierter Modellalias, Gültigkeit der Anwendungskonfiguration |
 
 Tabelle : Schnittstelle IChatService
 
-Fehler kommen als Ausnahme mit einem der vier Fälle: Modellserver nicht erreichbar, Modell unbekannt, Konfiguration ungültig, Zeitüberschreitung. Die Seite zeigt die Meldung mit Grund (M09), die Eingabe bleibt frei. Ein HTTP-Endpunkt GET /status mit demselben Inhalt wie Status() dient Betrieb und Tests; die Chat-Funktion selbst braucht keinen.
+Die bestehenden Operationen von IChatService und IStore bleiben erhalten. Abbrechen bezeichnet die fachliche Operation; technisch wird der Token der betreffenden aktiven Anfrage ausgelöst, kein zusätzlicher produktspezifischer Abbruchendpunkt. Status() beschreibt die über das Gateway beobachtete Modellanbindung; ein erreichbarer Gateway-Prozess allein beweist keine erfolgreiche Modellerzeugung. Die Anwendung verwendet keine LiteLLM-Verwaltungs- oder Health-Endpunkte. Der in `agent/Schnittstellen.md` noch als AP06-Entscheid markierte eigene Endpunkt `GET /status` bleibt ein offener Betriebsentscheid; für den Chat ist er nicht erforderlich.
 
-Backend zu Modellserver: die OpenAI-kompatible API des Docker Model Runner, hinter IModelServerClient. Der Adapter sendet POST auf chat/completions mit Modellname, Systemanweisung und Verlauf, stream=true, und liest die Teile als Server-Sent Events. Adresse und Modellname kommen aus der Konfiguration; aus dem Anwendungs-Container ist der Model Runner unter http://model-runner.docker.internal erreichbar, vom Host über den in Docker Desktop freigegebenen TCP-Port \[Adresse im Spike prüfen\]. Nur der Adapter kennt diese Adresse.
+### Anwendung zu LLM-Gateway
+
+IModelServerClient bleibt die produktneutrale Schnittstelle mit `StreamAntwortAsync(verlauf, systemanweisung, ct)` und `IAsyncEnumerable<string>` als Ausgabe. Die Umsetzung heisst OpenAiCompatibleClient. UI und Fachlogik verwenden keine LiteLLM-SDKs, LiteLLM-Datentypen oder Modellserverdetails. Der Client kennt nur den folgenden gemeinsamen HTTP-Vertrag:
+
+| Bestandteil | Vertrag |
+|----|----|
+| Ziel | Konfigurierbare API-Basisadresse einschliesslich API-Präfix; daran relativ `POST chat/completions` |
+| Anfrage | JSON mit `model` als logischem Modellalias, `messages` mit den Rollen system, user und assistant sowie `stream=true` |
+| Verlauf | Systemanweisung einmal voranstellen, danach den vom ChatService aufgebauten Verlauf einschliesslich der neuen Nachricht senden; das Gateway verwaltet keine Unterhaltung |
+| Generierungsparameter | Im Gateway konfiguriert; die Anwendung überschreibt Temperatur und maximale Antwortlänge nicht |
+| Antwort | SSE-Ereignisse im OpenAI-kompatiblen Chat-Completions-Format; Text aus `choices[].delta.content`, Abschlussinformation und reguläres Streamende (`[DONE]`) auswerten |
+| Auswertung | Ereignisse ohne Text, etwa Rollen- oder Nutzungsinformationen, erzeugen keinen sichtbaren Text; ein Verbindungsende ohne regulären Abschluss ist ein Störfall |
+| Authentifizierung | Falls erforderlich, Standardheader `Authorization: Bearer ...` aus serverseitiger Konfiguration; keine Gateway- oder Modellzugangsdaten im Browser |
+| Abbruch | HTTP-Anfrage schliessen; das Gateway muss den Abbruch an den Modellserver weitergeben |
+
+Das Gateway spricht ebenfalls über eine OpenAI-kompatible Chat-Completions-Schnittstelle mit dem lokalen Modellserver. Die jeweilige API-Basisadresse, tatsächliche Modellkennung und nötige Anpassungen liegen ausschliesslich in der Gateway-Konfiguration. Das OpenAI-kompatible Format beschreibt ein Protokoll und bedeutet keinen Aufruf des externen OpenAI-Dienstes. Die konkrete Unterstützung des gemeinsamen Funktionsumfangs wird für jede Gateway-/Modellserverkombination geprüft. Siehe [LiteLLM: OpenAI-kompatible Endpunkte](https://docs.litellm.ai/docs/providers/openai_compatible), [Docker Model Runner: API](https://docs.docker.com/ai/model-runner/api-reference/) und [Ollama: OpenAI-Kompatibilität](https://docs.ollama.com/api/openai-compatibility).
+
+### Technische Fehler und fachliche Störfälle
+
+Das Gateway behandelt technische Fehler der Modellanbindung und liefert sie über seine HTTP-/Streaming-Schnittstelle. Der Client behandelt zusätzlich Fehler auf dem Weg zum Gateway und übersetzt sie in die bestehende `StoerfallException`. Der ChatService entscheidet über Zustand, Speicherung und verständliche Meldung. Es werden keine neuen Störfallkategorien benötigt:
+
+| Bestehender Störfall | Zuordnung im Zielbild |
+|----|----|
+| ModellserverNichtErreichbar | Gateway nicht erreichbar, Modellserver hinter dem Gateway nicht erreichbar oder Verbindung/Stream unerwartet unterbrochen; der bereinigte Grund unterscheidet die betroffene Verbindung, soweit bekannt |
+| ModellUnbekannt | Gateway meldet unbekannten Modellalias oder unbekanntes Zielmodell |
+| KonfigurationUngueltig | Ungültige Anwendungskonfiguration, falsche API-Basisadresse, fehlende beziehungsweise abgewiesene Zugangsdaten oder fehlerhafte Gateway-/Modellkonfiguration |
+| Zeitueberschreitung | Technisches Zeitlimit oder Gesamtzeitlimit der Anfrage erreicht |
+
+HTTP-Status allein identifiziert nicht immer den fachlichen Grund: Ein 404 kann beispielsweise eine falsche Route oder ein unbekanntes Modell betreffen. Der Client wertet Status und verfügbare standardisierte Fehlerinformationen aus, ohne LiteLLM-spezifische Fehlertypen vorauszusetzen. Ein nicht eindeutig zuordenbarer technischer Ausfall wird als ModellserverNichtErreichbar mit einem neutralen Grund zur fehlgeschlagenen Modellanbindung behandelt. Benutzerabbruch ist kein Störfall. Rohe Fehlerantworten, Stacktraces, Zugangsdaten und möglicherweise darin enthaltene Chattexte werden weder an die UI noch in technische Protokolle übernommen. Bei Konfigurationsfehlern wird der betroffene Wertname genannt, nicht ein geheimes oder vertrauliches Wertfragment.
 
 ## Konfigurationskonzept
 
-| Wert | Wo | Beispiel (Platzhalter) | Wirkung |
-|----|----|----|----|
-| Adresse Modellserver | appsettings.json, überschreibbar per Umgebungsvariable | http://model-runner.docker.internal/engines/v1 | Adapter |
-| Modellname | dito | Name des Modells aus 6.8 | Anfrage an den Model Runner |
-| Systemanweisung | dito | «Du bist ein Assistent der HFU Uster …» | jeder Anfrage vorangestellt |
-| Laufzeitparameter | dito | Temperatur, maximale Antwortlänge | Anfrage |
-| Eingabegrenze | dito | 4000 Zeichen \[Entscheid offen\] | Prüfung in Schritt 2 des Standardablaufs |
-| Zeitlimit | dito | 60 Sekunden | Störfall Zeitüberschreitung |
-| Speicherort SQLite | dito | /data/chat.db im Docker-Volume | Store |
-| Protokolldatei | dito | /data/protokoll.log | 9.3 |
+| Wert | Verantwortung / Ablage | Wirkung |
+|----|----|----|
+| GatewayBasisadresse | Anwendung: appsettings.json, überschreibbar per Umgebungsvariable | API-Basisadresse des austauschbaren Gateways, einschliesslich API-Präfix |
+| Modellalias | Anwendung: dito | Logischer Name im Anfragefeld model; keine produktspezifische Modellkennung |
+| GatewayZugangsdaten, falls erforderlich | Anwendung: serverseitige Umgebung, keine echten Werte im Repository | Authentifizierung des Clients gegenüber dem Gateway |
+| Systemanweisung | Anwendung: appsettings.json oder Umgebungsvariable | Vom ChatService jeder Anfrage genau einmal vorangestellt |
+| Eingabegrenze | Anwendung: dito | Prüfung vor dem Client-Aufruf; bisheriger Vorschlag 4000 Zeichen bleibt ein offener Konzeptentscheid |
+| Zeitlimit | Anwendung: dito | Gesamtzeitlimit der Anfrage; bisheriger Konzeptwert 60 Sekunden |
+| SpeicherortDb und Protokolldatei | Anwendung: dito | SQLite und separate technische Protokolldatei im persistenten Anwendungsvolume |
+| Zuordnung Modellalias zu Zielmodell | Gateway-Konfiguration | Stabile Sicht der Anwendung trotz Wechsel des tatsächlichen Modells |
+| Modellserver-Adresse, Modellkennung und nötige Zugangsdaten | Gateway-Konfiguration / serverseitige Umgebung | Verbindung vom Gateway zum lokalen Modellserver |
+| Temperatur und maximale Antwortlänge | Gateway-Konfiguration | Generierungsparameter des zugeordneten Modells |
+| Technische Zeitlimits, Routing und Fehlerbehandlung | Gateway-Konfiguration | Modellanbindung; automatische Wiederholungen und Modell-Fallbacks standardmässig deaktiviert |
 
 Tabelle : Konfigurationswerte
 
-Regeln (S. 9, S. 12): keine Geheimnisse und keine persönlichen Pfade im Code; die mitgelieferte Beispieldatei enthält nur Platzhalter; eine Änderung wirkt nach Neustart des Containers ohne Neubau (Z02). Die Konfiguration wird beim Start geprüft; ein ungültiger Wert ist der Störfall Konfiguration ungültig und wird dem Betreiber in Status() und auf der Seite genannt (F06, F07).
+Die Anwendungskonfiguration bleibt ausserhalb des Sourcecodes in appsettings.json und Umgebungsvariablen. Die Tabelle benennt die Zuständigkeiten des Zielbilds; bestehende Konfigurationsdateien werden in diesem Dokumentauftrag nicht umgestellt. Keine Geheimnisse und keine persönlichen Pfade im Code oder in eingecheckten Konfigurationen; Beispiele enthalten nur Platzhalter. Anwendungseinstellungen werden beim Start geprüft. Eine ungültige Chatkonfiguration verhindert Modellanfragen und wird über Status() und die Seite verständlich gemeldet (F06, F07). Technische Gatewayeinstellungen werden vom Gateway geprüft; dessen Startfehler sind für den Betreiber in bereinigten Gatewaylogs sichtbar und in der Anwendung gegebenenfalls zunächst nur als Nichterreichbarkeit erkennbar.
+
+Die Gateway-Konfiguration ist standardmässig dateibasiert. Für LiteLLM sind Modellalias, Modellserver-Adresse und Generierungsparameter konfigurierbar; die LiteLLM-Admin-UI darf der Betreiber ebenfalls verwenden. Die selbst entwickelte Chat-UI ruft diese Verwaltungsoberfläche und deren APIs nicht auf. Bei Administration über eine Gatewaydatenbank werden die dort verwalteten Einstellungen dort geändert; Datei und UI dürfen nicht als voneinander unabhängige Quellen für denselben Wert behandelt werden. Siehe [LiteLLM-Konfigurationsreferenz](https://docs.litellm.ai/docs/proxy/configs).
+
+Der einfache dateibasierte Gateway-Betrieb benötigt keine eigene Datenbank. Eine gegebenenfalls für Gatewayverwaltung und Admin-UI erforderliche Datenbank gehört ausschliesslich zur Gateway-Infrastruktur; sie verwendet weder das Chatschema noch die SQLite-Datei der Anwendung. Chatverwaltung, Verlauf und Persistenz bleiben vollständig in der Anwendung. Siehe [LiteLLM-Betriebsvarianten](https://docs.litellm.ai/docs/proxy/docker_quick_start).
+
+### Austausch ohne Codeänderung
+
+- Modellserver oder Modell wechseln: Im Gateway die Zieladresse, Modellkennung und gegebenenfalls Parameter anpassen; den Modellalias der Anwendung beibehalten. Die Anwendung wird nicht neu gebaut.
+- Gateway wechseln: Einen Ersatz mit dem dokumentierten HTTP-, Streaming-, Fehler- und Abbruchverhalten bereitstellen, dieselbe Modellzuordnung und Generierungsparameter dort einrichten und in der Anwendung nur Gateway-Basisadresse sowie gegebenenfalls Zugangsdaten ändern. Keine Anpassung von UI, Fachlogik oder Client-Code.
+- Konfigurationsänderungen dürfen einen Neustart der betroffenen Komponente erfordern. Austauschbarkeit bedeutet Konfiguration ohne Codeänderung, nicht zwingend einen unterbrechungsfreien Wechsel. Eine beliebige nur teilweise OpenAI-kompatible Implementierung ist nicht automatisch geeignet; der gemeinsame Vertrag muss nachgewiesen sein.
+
+Offlinebetrieb (Z01): Anwendung, Gateway, Modellserver und Modell bleiben auf dem Referenzgerät. Images, Modelle und sonstige Laufzeitressourcen müssen vor dem Offlinebetrieb lokal vorhanden sein. Es werden keine externen KI-Dienste, Telemetrie, externen Logging-Callbacks oder Cloud-Fallbacks verwendet. Diese Vorgabe gilt auch für optionale Gateway-Verwaltungsfunktionen.
 
 # UI-Konzept
 
 Wie die Chatoberfläche aussieht und bedient wird: das Mockup mit den sieben Bedienabläufen von S. 12 der Kursunterlagen und die Umsetzung des Corporate Designs der HFU (M07).
+
+Die Chat-UI wird vollständig selbst entwickelt. LiteLLM liefert keine Chatoberfläche für die Benutzer dieses Projekts. Seine optionale Admin-UI dient ausschliesslich dem Betreiber für F07 und ersetzt weder die HFU-Chatoberfläche noch die Chatverwaltung. F08 erfolgt durch Einsicht in die technische Protokolldatei; daraus entsteht keine zusätzliche Pflichtansicht im Chat.
 
 ## Mockup
 
@@ -240,9 +349,9 @@ Welche Daten wo gespeichert werden, wie eine Unterhaltung eindeutig ist, was bei
 
 ## Welche Daten, wo
 
-Gespeichert werden Unterhaltung (Kennung, Titel, Erstellt am), Nachricht (Kennung, Unterhaltung, Text, Zeit) und Antwort (Kennung, Nachricht, Text, Zustand, Dauer). Das konzeptionelle Modell aus der Analyse ist die Vorlage: jede Klasse wird eine Tabelle, jede Beziehung ein Fremdschlüssel.
+Gespeichert werden Unterhaltung (Kennung, Titel, Erstellt am), Nachricht (Kennung, Unterhaltung, Text, Zeit) und Antwort (Kennung, Nachricht, Text, Zustand, Dauer). Nur diese drei Chatentitäten werden zu SQLite-Tabellen; ihre Beziehungen werden durch Fremdschlüssel abgebildet. Chat-Benutzer als Akteur, Konfiguration und Modell beschreiben den fachlichen Kontext und werden nicht zu zusätzlichen Tabellen. SQLite ist die alleinige Quelle für den gespeicherten Chatverlauf. Das Gateway erhält den für die jeweilige Anfrage zusammengestellten Verlauf und übernimmt keine Chatverwaltung oder Chatpersistenz; ein Antwortcache ist im Zielbild nicht vorgesehen.
 
-Diagramm: Konzeptionelles Modell: aus den Klassen werden Tabellen, aus den Attributen Felder (im Konzept als Bild, hier als Mermaid; Datei `046_konzeptmodell.png` im Ordner bilder des Projekts)
+Diagramm: Fachlicher Kontext und die drei gespeicherten Chatentitäten. Die Darstellung zu `046_konzeptmodell.png` im Masterkonzept ist abzugleichen; sie ist keine vollständige Tabellenvorgabe.
 
 ```mermaid
 classDiagram
@@ -266,30 +375,36 @@ classDiagram
         Dauer_bis_erstes_Wort
         Gesamtdauer
     }
-    class Konfiguration {
-        Adresse_Modellserver
-        Modellname
+    class Anwendungskonfiguration {
+        Gateway_Basisadresse
+        Modellalias
         Systemanweisung
-        Laufzeitparameter
+    }
+    class Gatewaykonfiguration {
+        Modellalias
+        Modellserver_Adresse
+        Modellkennung
+        Generierungsparameter
     }
     class Modell {
         Name
         Groesse_Quantisierung
     }
     ChatBenutzer "1" -- "*" Unterhaltung : führt
-    Unterhaltung "1" -- "*" Nachricht : enthält
+    Unterhaltung "1" -- "0..*" Nachricht : enthält
     Nachricht "1" -- "0..1" Antwort : erhält
-    Konfiguration "1" -- "1" Modell : wählt
+    Anwendungskonfiguration ..> Gatewaykonfiguration : referenziert Modellalias
+    Gatewaykonfiguration "1" -- "1" Modell : wählt im Mussumfang
     Antwort "*" -- "1" Modell : erzeugt von
 ```
 
-Speicherort: eine SQLite-Datei über Entity Framework Core (Entscheid 6.4), im Docker-Volume, damit sie den Neustart des Containers überlebt. Der Browser speichert nichts. Das Entity-Relationship-Modell: jede Klasse des Konzeptmodells wird eine Tabelle, jede Beziehung ein Fremdschlüssel, der Zustand der Antwort ein Enum als Zahl. Die Tabellen entstehen aus den Klassen (Code First); die Migration «Initial» wird in AP09 erzeugt, das Bild ist die Vorgabe dafür.
+Speicherort: eine SQLite-Datei über Entity Framework Core (Entscheid 6.4), im persistenten Volume der Anwendung, damit sie den Neustart des Containers überlebt. Der Browser persistiert keinen Chatverlauf. Das folgende Entity-Relationship-Modell zeigt ausschliesslich die drei Chatentitäten und ihre Fremdschlüssel; der Antwortzustand ist ein Enum als Zahl. Die Tabellen entstehen aus den Klassen (Code First); die Migration «Initial» gehört zu AP09. Ein Gatewaywechsel ändert weder dieses Schema noch die bestehenden Unterhaltungen.
 
-Diagramm: Entity-Relationship-Modell: drei Tabellen, zwei Beziehungen mit Kaskade, Zustand als Enum (im Konzept als Bild, hier als Mermaid; Datei `054_erm.png` im Ordner bilder des Projekts)
+Diagramm: Entity-Relationship-Modell: drei Tabellen, zwei Beziehungen mit Kaskade, Zustand als Enum. Die Darstellung zu `054_erm.png` im Konzept ist insbesondere bei der leeren Unterhaltung abzugleichen.
 
 ```mermaid
 erDiagram
-    UNTERHALTUNG ||--|{ NACHRICHT : "enthaelt, loeschen kaskadiert"
+    UNTERHALTUNG ||--o{ NACHRICHT : "enthaelt, loeschen kaskadiert"
     NACHRICHT ||--o| ANTWORT : "erhaelt, loeschen kaskadiert"
     UNTERHALTUNG {
         TEXT Id PK "GUID"
@@ -316,7 +431,7 @@ erDiagram
 | Tabelle | Feld | Typ in SQLite | Schlüssel und Regel |
 |----|----|----|----|
 | Unterhaltung | Id | TEXT (GUID) | Primärschlüssel, beim Anlegen erzeugt |
-| Unterhaltung | Titel | TEXT, nicht null | Anfang der ersten Nachricht, änderbar |
+| Unterhaltung | Titel | TEXT, nicht null | vorläufiger Titel bei leerer Unterhaltung, danach Anfang der ersten Nachricht, änderbar |
 | Unterhaltung | ErstelltAm | TEXT (ISO 8601) | Sortierung der Liste (F04) |
 | Nachricht | Id | TEXT (GUID) | Primärschlüssel |
 | Nachricht | UnterhaltungId | TEXT | Fremdschlüssel auf Unterhaltung, Index, Löschen kaskadiert |
@@ -332,13 +447,56 @@ erDiagram
 
 Tabelle : Tabellen und Felder der SQLite-Datenbank
 
-Nicht in der Datenbank: der Protokolleintrag (9.3, eigene Datei ohne Chattext) und die Konfiguration (7.4, appsettings.json). Beim Neustart wird jede Antwort im Zustand Angefordert oder Läuft auf Gestört mit Grund «Neustart» gesetzt (9.2), damit kein Zustand ohne laufende Anfrage existiert.
+Nicht in der Chatdatenbank: der technische Protokolleintrag (eigene Datei ohne Chattext), die Anwendungskonfiguration und die Gateway-Konfiguration. Eine optionale Gateway-Verwaltungsdatenbank ist davon getrennt. Beim Neustart wird jede Antwort im Zustand Angefordert oder Läuft auf Gestört mit Grund «Neustart» gesetzt, damit kein Zustand ohne laufende Anfrage existiert. Die Zeit bis zum ersten Textteil wird im technischen Protokoll festgehalten; dafür ist keine weitere Chattabelle erforderlich.
 
 ## Kennung, Löschung, Neustart
 
-Kennung: jede Unterhaltung, Nachricht und Antwort erhält beim Anlegen eine GUID; der Titel der Unterhaltung ist der Anfang der ersten Nachricht und kann geändert werden. Löschung: F05 entfernt die Unterhaltung mit allen Nachrichten und Antworten (Kaskade); der Protokolleintrag bleibt, weil er keinen Chattext enthält. Neustart: die Datei bleibt im Volume, die Liste wird beim Start geladen; eine Antwort, die beim Neustart noch lief, wird als Gestört mit Grund Neustart gespeichert, damit kein Zustand Läuft ohne laufende Anfrage existiert.
+Kennung: jede Unterhaltung, Nachricht und Antwort erhält beim Anlegen eine GUID. Eine neue Unterhaltung darf null Nachrichten enthalten (F03) und erhält zunächst einen vorläufigen Titel; nach der ersten Nachricht wird deren Anfang als Titel verwendet. Der Titel kann geändert werden. Löschung: F05 entfernt die Unterhaltung mit allen Nachrichten und Antworten (Kaskade); der technische Protokolleintrag bleibt, weil er keinen Chattext enthält. Neustart: die SQLite-Datei bleibt im Volume, die Liste wird beim Start geladen; eine Antwort, die beim Neustart noch lief, wird als Gestört mit Grund Neustart gespeichert. Öffnen, Löschen und Wiederherstellen der Unterhaltungen benötigen keinen Zugriff auf LiteLLM oder dessen Verwaltungsdaten.
 
 ## Technische Logs getrennt von Chatdaten
 
-Das technische Protokoll steht in einer eigenen Datei im Volume (7.4), ein Eintrag je Anfrage: Zeit, Kennung der Unterhaltung, Modellname, Dauer bis zum ersten Teil, Gesamtdauer, Anzahl Zeichen, Endzustand und bei Störung der Grund. Kein Chattext, keine Systemanweisung (S. 9). Zweck: Messung für M11 (11.4) und Fehlersuche; die Datei kann ohne Rücksicht auf Inhalte weitergegeben werden.
+Das technische Anfrageprotokoll der Anwendung steht in einer eigenen Datei im Volume, ein Eintrag je Modellanfrage: Zeitpunkt, Art des Vorgangs, Kennung der Unterhaltung, Modellalias, Dauer bis zum ersten Textteil, Gesamtdauer, Anzahl Zeichen, Endzustand und bei Störung ein bereinigter Grund. Wenn kein Textteil eintrifft, ist die Dauer bis zum ersten Teil nicht vorhanden. Der ChatService verantwortet diesen Eintrag auch bei Abbruch und Störung; das Gateway ersetzt ihn nicht. Zweck sind Messung für M11 und Fehlersuche durch den Betreiber (F08).
 
+Kein Chattext, keine Systemanweisung, keine Zugangsdaten und keine rohen Anfrage-, Antwort- oder Fehlerinhalte werden technisch protokolliert. Das gilt für Anwendung, Gateway und Modellserver einschliesslich ihrer Standardausgabe, Fehlerausgabe und optionalen Verwaltungsfunktionen. Inhaltslogging, entsprechende Debug-Ausgaben und externe Logging-Callbacks werden deaktiviert; die eingesetzte Konfiguration wird darauf geprüft. Bereinigte technische Gatewaylogs dürfen zusätzlich zur Fehlerdiagnose dienen, sind aber keine Quelle für den Chatverlauf. Auch technische Metadaten werden vor einer Weitergabe geprüft.
+
+# Nachweise und Dokumentabgleich
+
+## Zuordnung zu Funktionen und Zielen
+
+| Funktionen / Ziele | Verantwortliche Bausteine und Nachweis im Zielbild |
+|----|----|
+| F01, F02 / Z03 | Chat-Seite, ChatService, Client, Gateway und Modellserver: schrittweise Ausgabe, Abbruch über die gesamte Anfragekette, Teilantwort bleibt, nächste Frage funktioniert |
+| F03, F04, F05 / Z05 | ChatService und SQLite-Store: leere Unterhaltung, gespeicherte Verläufe nach Neustart öffnen, vollständig und einzeln löschen |
+| F06 / Z06 | Gateway behandelt technische Modellfehler; Client übersetzt Transport-/Gatewayfehler; ChatService speichert Zustand und liefert verständliche Meldung, danach Weiterbetrieb |
+| F07 / Z02 | Getrennte Anwendungs- und Gateway-Konfiguration: Adresse, Modell und Systemanweisung ändern ohne Neubau; beide Austauschfälle erfüllen denselben Protokollvertrag |
+| F08 / Z07 | Eigenes technisches Anfrageprotokoll für den Betreiber; Prüfung aller beteiligten Logs auf fehlende Chattexte und Systemanweisungen |
+| F01 bis F08 / Z01 | Gesamte Verarbeitung einschliesslich Gatewaybetrieb lokal; fünf Anfragen ohne Internet, keine externen Aufrufe |
+| NF04, NF05 / Z04 | Selbst entwickelte Blazor-Chat-UI mit HFU-Gestaltung und vollständiger Bedienbarkeit bei Desktop- und Mobilbreite |
+
+## Prüfungen für die spätere Umsetzung
+
+Diese Szenarien beschreiben die Abnahme des Designs; sie wurden durch die Dokumentänderung nicht ausgeführt. Die bestehenden Fälle aus `agent/Testfaelle.md` bleiben Grundlage.
+
+- F01: leere und zu lange Eingabe ohne Client-Aufruf; gültige Eingabe mit Systemanweisung und korrektem Verlauf; Textteile werden vor Abschluss angezeigt, danach Frage und Antwort gespeichert (T02, T03, T09, T10).
+- F02: Abbruch vor und nach dem ersten Textteil, tatsächliches Ende der Modellerzeugung prüfen; Teiltext beziehungsweise leere Antwort als Abgebrochen speichern; unmittelbar danach eine weitere Frage senden (T04, ergänzender Fall vor erstem Teil).
+- F06: Gateway aus, Modellserver aus, unbekannter Alias beziehungsweise unbekanntes Zielmodell, ungültige Konfiguration, Timeout sowie Streamabbruch nach ersten Teilen; jeweils richtiger Störfall, kein fälschlicher Zustand Fertig, erhaltene Teilantwort und Weiterbetrieb (T07, T08, T11, T12 und ergänzende Integrationsfälle). Bei Nichterreichbarkeit bleibt der Eingabetext erhalten.
+- Austauschbarkeit: Modellserver bei unverändertem Alias wechseln; danach Gateway durch eine andere vertragskonforme Umsetzung ersetzen. In beiden Fällen ohne Codeänderung oder Neubau Streaming, Abbruch, Fehlerabbildung und vorhandene Unterhaltungen erneut prüfen.
+- Persistenz: leere Unterhaltung anlegen, fünf Unterhaltungen speichern, Anwendung neu starten, alle öffnen und eine vollständig löschen; laufende Zustände nach Neustart als Gestört markieren (T01, T05, T06, Z05).
+- Offlinebetrieb und Datenschutz: fünf Anfragen ohne Internet; drei Testanfragen anschliessend gegen sämtliche Anwendungs-, Gateway- und Modellserverlogs prüfen. Keine externen Aufrufe, Chattexte, Systemanweisungen oder Zugangsdaten (N01, N05).
+- Oberfläche: eigene HFU-Chat-UI bei beiden festgelegten Fensterbreiten prüfen; LiteLLM-Administration bleibt ein getrenntes Betreiberwerkzeug (N03).
+
+## Ausstehender Abgleich ausserhalb dieses Auftrags
+
+Nur dieses Dokument wird geändert. Die folgenden Abweichungen werden ausdrücklich festgehalten; die übrigen Dokumente und das Masterkonzept gelten dadurch nicht als angepasst oder freigegeben:
+
+| Dokument / Referenz | Nachzuführender Abgleich |
+|----|----|
+| Masterkonzept, Kapitel 7 und 14.3, Architekturabbildungen | Separates austauschbares Gateway, Betriebsbild, neutraler Client, Konfigurationsaufteilung und Fehlergrenzen übernehmen; Architekturänderung durch die Gruppe freigeben |
+| Masterkonzept 4.7.6 und Zustandsdiagramm in Use_Cases.md | Benutzerabbruch bereits aus Angefordert berücksichtigen; das bisherige Diagramm zeigt nur Läuft → Abgebrochen |
+| agent/Schnittstellen.md | IChatService, IStore und IModelServerClient bleiben als Verträge erhalten; Umsetzung OpenAiCompatibleClient, Gateway-Ziel, Alias und Konfigurationswerte sowie Statusbedeutung abgleichen |
+| agent/StylingGuide.md | ModelRunner-spezifische Adapterbezeichnung und Beispielanbindung, Konfigurationswerte, Abbruch-/Timeoutunterscheidung und Verhalten bei ungültiger Chatkonfiguration abgleichen |
+| AGENTS.md und agent/Review_Checkliste.md | Bisherige Festlegung auf direkten Model-Runner-Adapter und zweiten Modellservercontainer an das freigegebene Zielbild angleichen |
+| agent/Drittkomponenten.md | Vor dem tatsächlichen Einsatz LiteLLM mit exakter Version, Zweck, Lizenz und Freigabe erfassen; bei Wahl von Ollama oder einer Gateway-Verwaltungsdatenbank diese ebenfalls erfassen |
+| agent/Testfaelle.md | Gatewayausfall, beide Austauschfälle, Abbruch vor erstem Teil und Ende der tatsächlichen Modellerzeugung ergänzen; T12 mit dem abgeglichenen Zustandsdiagramm abstimmen |
+
+Code, Compose-Dateien, Konfigurationsdateien, Schnittstellendokument, Masterkonzept, Kartendateien und Protokolle werden durch diesen Dokumentauftrag nicht geändert. Build, Formatierung und Laufzeittests gehören zur späteren Implementierung. Für die Dokumentänderung werden Text, Tabellen und Mermaid-Diagramme auf Konsistenz sowie der Diff auf ausschliessliche Änderungen an `agent/Design.md` geprüft. Die Freigabe des Designs bleibt bei der Gruppe.
