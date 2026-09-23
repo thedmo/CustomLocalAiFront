@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:8000"
     environment:
-      - DMR_BASE_URL=http://host.docker.internal:12434
+      - DMR_BASE_URL=http://model-runner.docker.internal
       - MODEL_NAME=hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M
       - CONTEXT_SIZE=4096
     extra_hosts:
@@ -20,7 +20,6 @@ models:
   llm:
     model: hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M
     context_size: 4096
-
 
 # Funktionierende Modelle:
 # Qwen2.5 coder 7B instruct Q3

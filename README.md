@@ -15,3 +15,5 @@ Damit die Modell anbindung benutzt werden kann, müssen folgende Voraussetzungen
 Ins Projektverzeichnis wechseln
 
 Service starten per `Docker Compose up -d`
+
+Aufrufen via `http://localhost:3000`
