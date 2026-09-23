@@ -45,7 +45,8 @@
         {
             var client = HttpClientFactory.CreateClient("ModelRunner");
             var model = Configuration["Chat:Modellname"]
-                ?? throw new InvalidOperationException("Chat:Modellname is missing.");
+                ?? Configuration["MODEL_NAME"]
+                ?? throw new InvalidOperationException("MODEL_NAME is missing.");
 
             var request = new
             {
