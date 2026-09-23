@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build LocalAiFront",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/web_app/LocalAiFront/LocalAiFront.csproj"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "validate .env",
+      "type": "process",
+      "command": "python",
+      "args": [
+        "${workspaceFolder}/prepare_environment.py"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare LocalAiFront debugging",
+      "dependsOn": [
+        "build LocalAiFront",
+        "validate .env"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    }
+  ]
+}
