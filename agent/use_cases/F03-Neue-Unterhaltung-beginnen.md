@@ -2,7 +2,7 @@
 
 | Feld           | Inhalt                                                                                                                                                                                          |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Verantwortlich | [Kürzel]                                                                                                                                                                                        |
+| Verantwortlich | [BH]                                                                                                                                                                                            |
 | Halbtag        | [Di PM]                                                                                                                                                                                         |
 | Referenz       | F03 Neue Unterhaltung beginnen; Z05; M08                                                                                                                                                        |
 | Quellen        | `agent/Use_Cases.md` Funktion F03, NF06 Persistenz, Ziel Z05; `agent/Design.md` Unterhaltungen, Store und Zustandsmodell; `agent/Schnittstellen.md` `IStore`, `IChatService` und `Unterhaltung` |
@@ -41,11 +41,12 @@ Die Funktion nutzt die vorhandenen Store- und Unterhaltungskonzepte aus `agent/S
 
 ## 7. Grösse
 
-Einhalbtag. Teilschritte: 1) neue leere Unterhaltung im Modell und Store, 2) UI-Integration mit aktiver Unterhaltung, 3) Persistenzprüfung nach Neustart und kurzer Review.
+Ein Halbtag.
+Teilschritte: 1. neue leere Unterhaltung im Modell und Store 2. UI-Integration mit aktiver Unterhaltung, 3. Persistenzprüfung nach Neustart und kurzer Review.
 
 ## 8. Board
 
-Projektplan Blatt Arbeitspakete, F03, Status In Arbeit, verantwortliche Person [Kürzel], WIP je Person max. zwei.
+Projektplan Blatt Arbeitspakete, F03, Status In Arbeit, verantwortliche Person [BH], WIP je Person max. zwei.
 
 ---
 
