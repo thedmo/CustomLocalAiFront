@@ -105,6 +105,7 @@ public sealed class ChatSeiteTests
 
         Assert.Equal(2, service.NeueUnterhaltungAufrufe);
         Assert.Equal(2, seite.FindAll(".unterhaltungs-eintrag").Count);
+        Assert.Single(seite.FindAll(".unterhaltungs-eintrag[aria-pressed='true']"));
         Assert.Contains("Neue Unterhaltung", seite.Markup);
     }
 
@@ -122,6 +123,7 @@ public sealed class ChatSeiteTests
     private static BunitContext ErzeugeKontext(FakeChatService service)
     {
         BunitContext context = new();
+        context.JSInterop.Mode = JSRuntimeMode.Loose;
         context.Services.AddSingleton<IChatService>(service);
         return context;
     }

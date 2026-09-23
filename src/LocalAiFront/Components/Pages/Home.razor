@@ -2,225 +2,228 @@
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 @inject IChatService ChatService
+@inject IJSRuntime JS
 
 <PageTitle>Lokaler KI-Chat</PageTitle>
 
-<h1>Lokaler KI-Chat</h1>
+<h1 class="page-title">Lokaler KI-Chat</h1>
 
-<div class="d-flex gap-3">
-  <aside class="unterhaltungs-liste" aria-label="Unterhaltungen">
-    @foreach (ChatUnterhaltung unterhaltung in _unterhaltungen)
-    {
-      <button type="button"
-              class="unterhaltungs-eintrag @(unterhaltung.Id == _unterhaltungId ? "active" : string.Empty)"
-              @onclick="() => WechsleUnterhaltung(unterhaltung.Id)">
-        @unterhaltung.Titel
-      </button>
-    }
+<div class="chat-shell">
+    <div class="chat-main">
+        <aside class="unterhaltungs-liste" aria-label="Unterhaltungen">
+            @foreach (ChatUnterhaltung unterhaltung in _unterhaltungen)
+            {
+                <button type="button"
+                        class="unterhaltungs-eintrag btn @(unterhaltung.Id == _unterhaltungId ? "btn-primary" : "btn-outline-primary")"
+                        aria-pressed="@((unterhaltung.Id == _unterhaltungId).ToString().ToLowerInvariant())"
+                        @onclick="() => WechsleUnterhaltung(unterhaltung.Id)">
+                    @unterhaltung.Titel
+                </button>
+            }
 
-    <button id="neue-unterhaltung"
-            type="button"
-            class="btn btn-outline-secondary"
-            @onclick="NeueUnterhaltungAsync">
-      Neue Unterhaltung
-    </button>
-  </aside>
+            <button id="neue-unterhaltung" type="button" class="btn btn-primary" @onclick="NeueUnterhaltungAsync">
+                Neue Unterhaltung
+            </button>
+        </aside>
 
-  <section class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite">
-    @if (AktiveEintraege.Count == 0)
-    {
-      <p class="text-secondary">Stelle deine erste Frage.</p>
-    }
+        <div class="chat-panel">
+            <section id="chat-verlauf" class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite" @ref="_chatVerlaufRef">
+                @if (AktiveEintraege.Count == 0)
+                {
+                    <p class="text-secondary">Stelle deine erste Frage.</p>
+                }
 
-    @foreach (ChatEintrag eintrag in AktiveEintraege)
-    {
-      <article class="chat-nachricht @(eintrag.IstBenutzer ? "chat-benutzer" : "chat-assistent")">
-        <strong>@(eintrag.IstBenutzer ? "Du" : "Assistent")</strong>
-        <p>@eintrag.Text</p>
-        @if (eintrag.IstAbgebrochen)
-        {
-          <small>Antwort abgebrochen</small>
-        }
-      </article>
-    }
-  </section>
+                @foreach (ChatEintrag eintrag in AktiveEintraege)
+                {
+                    <article class="chat-nachricht @(eintrag.IstBenutzer ? "chat-benutzer" : "chat-assistent")">
+                        <strong>@(eintrag.IstBenutzer ? "Du" : "Assistent")</strong>
+                        <p>@eintrag.Text</p>
+                        @if (eintrag.IstAbgebrochen)
+                        {
+                            <small>Antwort abgebrochen</small>
+                        }
+                    </article>
+                }
+            </section>
+
+            <div class="chat-eingabe">
+                <label for="nachricht" class="form-label">Nachricht</label>
+                <textarea id="nachricht" class="form-control" rows="3" maxlength="4001" placeholder="Nachricht eingeben …"
+                          @bind="_eingabe" @bind:event="oninput" disabled="@_sendet"></textarea>
+
+                <div class="chat-aktionen">
+                    <button id="senden" type="button" class="btn btn-primary" @onclick="SendeAsync"
+                            disabled="@(_sendet || string.IsNullOrWhiteSpace(_eingabe))">
+                        Senden
+                    </button>
+
+                    @if (_sendet)
+                    {
+                        <button id="abbrechen" type="button" class="btn btn-outline-secondary" @onclick="AbbrechenAsync"
+                                disabled="@(_aktiveAntwortId is null)">
+                            Abbrechen
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <p id="chat-status" class="chat-status">@_status</p>
+
+            @if (_fehler is not null)
+            {
+                <p class="alert alert-danger" role="alert">@_fehler</p>
+            }
+        </div>
+    </div>
 </div>
-
-<div class="chat-eingabe">
-  <label for="nachricht" class="form-label">Nachricht</label>
-  <textarea id="nachricht"
-            class="form-control"
-            rows="3"
-            maxlength="4001"
-            placeholder="Nachricht eingeben …"
-            @bind="_eingabe"
-            @bind:event="oninput"
-            disabled="@_sendet"></textarea>
-
-  <div class="chat-aktionen">
-    <button id="senden"
-            type="button"
-            class="btn btn-primary"
-            @onclick="SendeAsync"
-            disabled="@(_sendet || string.IsNullOrWhiteSpace(_eingabe))">
-      Senden
-    </button>
-
-    @if (_sendet)
-    {
-      <button id="abbrechen"
-              type="button"
-              class="btn btn-outline-secondary"
-              @onclick="AbbrechenAsync"
-              disabled="@(_aktiveAntwortId is null)">
-        Abbrechen
-      </button>
-    }
-  </div>
-</div>
-
-<p id="chat-status" class="chat-status">@_status</p>
-
-@if (_fehler is not null)
-{
-  <p class="alert alert-danger" role="alert">@_fehler</p>
-}
 
 @code {
-  private readonly CancellationTokenSource _lebenszyklus = new();
-  private readonly List<ChatUnterhaltung> _unterhaltungen = [];
-  private Guid _unterhaltungId;
-  private Guid? _aktiveAntwortId;
-  private string _eingabe = string.Empty;
-  private string _status = "Bereit";
-  private string? _fehler;
-  private bool _sendet;
-  private bool _abbruchAngefordert;
+    private readonly CancellationTokenSource _lebenszyklus = new();
+    private readonly List<ChatUnterhaltung> _unterhaltungen = [];
+    private Guid _unterhaltungId;
+    private Guid? _aktiveAntwortId;
+    private string _eingabe = string.Empty;
+    private string _status = "Bereit";
+    private string? _fehler;
+    private bool _sendet;
+    private bool _abbruchAngefordert;
+    private ElementReference _chatVerlaufRef;
+    private int _letzteNachrichtenAnzahl;
 
-  private List<ChatEintrag> AktiveEintraege =>
-    _unterhaltungen.First(u => u.Id == _unterhaltungId).Eintraege;
+    private List<ChatEintrag> AktiveEintraege =>
+      _unterhaltungen.First(u => u.Id == _unterhaltungId).Eintraege;
 
-  protected override async Task OnInitializedAsync()
-  {
-    await NeueUnterhaltungAsync();
-  }
-
-  private async Task NeueUnterhaltungAsync()
-  {
-    if (_sendet)
+    protected override async Task OnInitializedAsync()
     {
-      return;
+        await NeueUnterhaltungAsync();
     }
 
-    Guid id = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
-    _unterhaltungen.Add(new ChatUnterhaltung(id));
-    _unterhaltungId = id;
-    _eingabe = string.Empty;
-    _fehler = null;
-    _status = "Bereit";
-    await InvokeAsync(StateHasChanged);
-  }
-
-  private void WechsleUnterhaltung(Guid id)
-  {
-    if (_sendet)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-      return;
+        int nachrichtenAnzahl = AktiveEintraege.Count;
+        if (nachrichtenAnzahl != _letzteNachrichtenAnzahl || firstRender)
+        {
+            _letzteNachrichtenAnzahl = nachrichtenAnzahl;
+            await JS.InvokeVoidAsync("eval", "const el = document.getElementById('chat-verlauf'); if (el) { el.scrollTop = el.scrollHeight; }");
+        }
     }
 
-    _unterhaltungId = id;
-    _eingabe = string.Empty;
-    _fehler = null;
-    _status = "Bereit";
-  }
-
-  private async Task SendeAsync()
-  {
-    if (_sendet || string.IsNullOrWhiteSpace(_eingabe))
+    private async Task NeueUnterhaltungAsync()
     {
-      return;
-    }
+        if (_sendet)
+        {
+            return;
+        }
 
-    _sendet = true;
-    _abbruchAngefordert = false;
-    _fehler = null;
-    _status = "Antwort wird erstellt …";
-    string text = _eingabe;
-
-    try
-    {
-      AntwortLauf lauf = await ChatService.SendeNachrichtAsync(
-        _unterhaltungId,
-        text,
-        _lebenszyklus.Token);
-      _eingabe = string.Empty;
-      _aktiveAntwortId = lauf.AntwortId;
-
-      ChatUnterhaltung unterhaltung = _unterhaltungen.First(u => u.Id == _unterhaltungId);
-      unterhaltung.Eintraege.Add(new ChatEintrag(true, text));
-      ChatEintrag antwort = new(false, string.Empty);
-      unterhaltung.Eintraege.Add(antwort);
-      unterhaltung.Titel = text.Length > 20 ? text[..20] : text;
-
-      await foreach (string teil in lauf.Teile.WithCancellation(_lebenszyklus.Token))
-      {
-        antwort.Text += teil;
+        Guid id = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+        _unterhaltungen.Add(new ChatUnterhaltung(id));
+        _unterhaltungId = id;
+        _eingabe = string.Empty;
+        _fehler = null;
+        _status = "Bereit";
         await InvokeAsync(StateHasChanged);
-      }
-
-      antwort.IstAbgebrochen = _abbruchAngefordert;
-      _status = _abbruchAngefordert ? "Antwort abgebrochen" : "Bereit";
     }
-    catch (StoerfallException ausnahme)
+
+    private void WechsleUnterhaltung(Guid id)
     {
-      _fehler = ausnahme.Message;
-      _status = "Störung";
+        if (_sendet)
+        {
+            return;
+        }
+
+        _unterhaltungId = id;
+        _eingabe = string.Empty;
+        _fehler = null;
+        _status = "Bereit";
     }
-    catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
+
+    private async Task SendeAsync()
     {
-      // Beim Verlassen der Seite ist keine weitere Anzeige nötig.
+        if (_sendet || string.IsNullOrWhiteSpace(_eingabe))
+        {
+            return;
+        }
+
+        _sendet = true;
+        _abbruchAngefordert = false;
+        _fehler = null;
+        _status = "Antwort wird erstellt …";
+        string text = _eingabe;
+
+        try
+        {
+            AntwortLauf lauf = await ChatService.SendeNachrichtAsync(
+              _unterhaltungId,
+              text,
+              _lebenszyklus.Token);
+            _eingabe = string.Empty;
+            _aktiveAntwortId = lauf.AntwortId;
+
+            ChatUnterhaltung unterhaltung = _unterhaltungen.First(u => u.Id == _unterhaltungId);
+            unterhaltung.Eintraege.Add(new ChatEintrag(true, text));
+            ChatEintrag antwort = new(false, string.Empty);
+            unterhaltung.Eintraege.Add(antwort);
+            unterhaltung.Titel = text.Length > 20 ? text[..20] : text;
+
+            await foreach (string teil in lauf.Teile.WithCancellation(_lebenszyklus.Token))
+            {
+                antwort.Text += teil;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            antwort.IstAbgebrochen = _abbruchAngefordert;
+            _status = _abbruchAngefordert ? "Antwort abgebrochen" : "Bereit";
+        }
+        catch (StoerfallException ausnahme)
+        {
+            _fehler = ausnahme.Message;
+            _status = "Störung";
+        }
+        catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
+        {
+            // Beim Verlassen der Seite ist keine weitere Anzeige nötig.
+        }
+        finally
+        {
+            _aktiveAntwortId = null;
+            _sendet = false;
+        }
     }
-    finally
+
+    private async Task AbbrechenAsync()
     {
-      _aktiveAntwortId = null;
-      _sendet = false;
-    }
-  }
+        if (_aktiveAntwortId is not Guid antwortId)
+        {
+            return;
+        }
 
-  private async Task AbbrechenAsync()
-  {
-    if (_aktiveAntwortId is not Guid antwortId)
+        _abbruchAngefordert = true;
+        _status = "Antwort wird abgebrochen …";
+        await ChatService.AbbrechenAsync(antwortId, CancellationToken.None);
+    }
+
+    public ValueTask DisposeAsync()
     {
-      return;
+        _lebenszyklus.Cancel();
+        _lebenszyklus.Dispose();
+        return ValueTask.CompletedTask;
     }
 
-    _abbruchAngefordert = true;
-    _status = "Antwort wird abgebrochen …";
-    await ChatService.AbbrechenAsync(antwortId, CancellationToken.None);
-  }
+    private sealed class ChatUnterhaltung(Guid id)
+    {
+        public Guid Id { get; } = id;
 
-  public ValueTask DisposeAsync()
-  {
-    _lebenszyklus.Cancel();
-    _lebenszyklus.Dispose();
-    return ValueTask.CompletedTask;
-  }
+        public string Titel { get; set; } = "Neue Unterhaltung";
 
-  private sealed class ChatUnterhaltung(Guid id)
-  {
-    public Guid Id { get; } = id;
+        public List<ChatEintrag> Eintraege { get; } = [];
+    }
 
-    public string Titel { get; set; } = "Neue Unterhaltung";
+    private sealed class ChatEintrag(bool istBenutzer, string text)
+    {
+        public bool IstBenutzer { get; } = istBenutzer;
 
-    public List<ChatEintrag> Eintraege { get; } = [];
-  }
+        public string Text { get; set; } = text;
 
-  private sealed class ChatEintrag(bool istBenutzer, string text)
-  {
-    public bool IstBenutzer { get; } = istBenutzer;
-
-    public string Text { get; set; } = text;
-
-    public bool IstAbgebrochen { get; set; }
-  }
+        public bool IstAbgebrochen { get; set; }
+    }
 }

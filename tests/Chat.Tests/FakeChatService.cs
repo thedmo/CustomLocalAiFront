@@ -10,7 +10,7 @@ public sealed class FakeChatService : IChatService
     private readonly TaskCompletionSource _sendenGestartet = new(
         TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public Guid UnterhaltungId { get; } = Guid.NewGuid();
+    public Guid UnterhaltungId { get; private set; } = Guid.NewGuid();
 
     public Guid AntwortId { get; } = Guid.NewGuid();
 
@@ -28,6 +28,7 @@ public sealed class FakeChatService : IChatService
     {
         ct.ThrowIfCancellationRequested();
         NeueUnterhaltungAufrufe++;
+        UnterhaltungId = Guid.NewGuid();
         return Task.FromResult(UnterhaltungId);
     }
 

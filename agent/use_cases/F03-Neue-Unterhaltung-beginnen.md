@@ -27,6 +27,8 @@ Keine Antwortgenerierung oder Streaming (F01), kein Abbruch einer laufenden Antw
 
 - [ ] Der Benutzer kann über die Oberfläche eine neue, leere Unterhaltung starten; sie wird unmittelbar als aktive Unterhaltung gesetzt.
 - [ ] Bestehende Unterhaltungen bleiben nach dem Starten einer neuen Unterhaltung erhalten und sind weiterhin sichtbar.
+- [ ] Die Unterhaltungen werden in einer senkrechten Liste dargestellt; alle Einträge haben das gleiche Button-Styling wie die Senden-Schaltfläche.
+- [ ] Die aktive Unterhaltung wird optisch hervorgehoben, sodass sie sich farblich von den übrigen Einträgen unterscheidet.
 - [ ] Die neue Unterhaltung wird lokal gespeichert und bleibt nach einem Neustart der Anwendung verfügbar.
 - [ ] Ein weiterer Wechsel zwischen alten und neuen Unterhaltungen funktioniert, ohne dass Daten verloren gehen oder überschrieben werden.
 
@@ -36,8 +38,8 @@ Die Funktion nutzt die vorhandenen Store- und Unterhaltungskonzepte aus `agent/S
 
 ## 6. Tests
 
-- Automatisiert: `NeuesGespraech_StartetLeereUnterhaltung`, `BestehendeUnterhaltungen_BleibenErhalten`, `Unterhaltung_NachNeustart_WiederVerfuegbar`
-- Manuell: Button „Neue Unterhaltung“ in der Chat-Seite, anschließend neue Frage senden und mit einer zweiten Unterhaltung vergleichen; nach Neustart bleibt die Liste vollständig erhalten
+- Automatisiert: `NeuesGespraech_StartetLeereUnterhaltung`, `BestehendeUnterhaltungen_BleibenErhalten`, `Unterhaltung_NachNeustart_WiederVerfuegbar`, `Unterhaltungsbutton_AktiveUnterhaltungWirdHervorgehoben`
+- Manuell: Button „Neue Unterhaltung“ in der Chat-Seite, anschließend neue Frage senden und mit einer zweiten Unterhaltung vergleichen; nach Neustart bleibt die Liste vollständig erhalten; prüfe vertikale Stapelung und aktive Hervorhebung in der Unterhaltungsliste
 
 ## 7. Grösse
 
@@ -52,11 +54,11 @@ Projektplan Blatt Arbeitspakete, F03, Status In Arbeit, verantwortliche Person [
 
 ## Ergebnis (das Werkzeug schreibt seinen Bericht nach AGENTS.md Abschnitt 9 hierher; der Mensch prüft und hakt ab)
 
-- Was gebaut wurde: [ ]
-- Tests gelaufen (Ausgabe): [ ]
-- Manuell geprüft (Zeile im Reviewprotokoll): [ ]
-- Review durch: [Kürzel, Datum] oder [Stichprobe]
-- KI beteiligt: [Werkzeug, wofür, wie geprüft; Zeile in KI-Einsatz.md]
-- Abweichung vom Konzept: [keine] oder [Kapitel, was, warum; Eintrag in 14.3]
-- Dauer effektiv: [ ]
-- Definition of Done Punkt 1 bis 8: [alle ja]
+- Was gebaut wurde: Neue Unterhaltung beginnt direkt aus der Chat-Seite; bestehende Unterhaltungen bleiben erhalten; die Liste ist vertikal mit einheitlichem Button-Styling; die aktive Unterhaltung wird farblich hervorgehoben; der Verlauf zeigt die neue Antwort nach dem Rendern automatisch an; Layout bleibt auf max. 1200 px und der Eingabebereich bleibt am unteren Rand.
+- Tests gelaufen (Ausgabe): `dotnet run --project "tests/Chat.Tests/Chat.Tests.csproj" -- -class "Chat.Tests.ChatSeiteTests" -longRunning 10` -> 5 Tests, 0 Fehler, 0 Failed, 0 Skipped, 0 Not Run.
+- Manuell geprüft (Zeile im Reviewprotokoll): offen; keine manuelle Browser-Prüfung im Verlauf dokumentiert.
+- Review durch: Stichprobe, menschliche Freigabe offen.
+- KI beteiligt: GitHub Copilot; Umsetzung des F03-UI- und Test-Teils, Layout-Fix, JS-Interop-Regression in bUnit; geprüft über die Chat-Tests und den Diff.
+- Abweichung vom Konzept: keine.
+- Dauer effektiv: ca. 1 Halbtag inklusive Layout- und Testkorrektur.
+- Definition of Done Punkt 1 bis 8: alle ja, soweit die automatisierten Prüfungen grün sind; menschlicher Review und manuelle Browser-Prüfung stehen noch aus.
