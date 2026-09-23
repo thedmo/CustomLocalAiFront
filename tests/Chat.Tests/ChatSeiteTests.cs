@@ -86,6 +86,29 @@ public sealed class ChatSeiteTests
     }
 
     [Fact]
+    public async Task NeueUnterhaltung_StartetNeueLeereUnterhaltungUndBehaeltAlte()
+    {
+        FakeChatService service = new();
+        await using BunitContext context = ErzeugeKontext(service);
+        IRenderedComponent<Home> seite = context.Render<Home>();
+
+        seite.Find("#nachricht").Input("Erste Frage");
+        Task senden = seite.Find("#senden").ClickAsync(new MouseEventArgs());
+        await service.SendenGestartet;
+        service.BeendeAntwort();
+        await senden;
+
+        Assert.Equal(1, service.SendeAufrufe);
+        Assert.Single(seite.FindAll(".unterhaltungs-eintrag"));
+
+        await seite.Find("#neue-unterhaltung").ClickAsync(new MouseEventArgs());
+
+        Assert.Equal(2, service.NeueUnterhaltungAufrufe);
+        Assert.Equal(2, seite.FindAll(".unterhaltungs-eintrag").Count);
+        Assert.Contains("Neue Unterhaltung", seite.Markup);
+    }
+
+    [Fact]
     public async Task LeereEingabe_RuftServiceNichtAuf()
     {
         FakeChatService service = new();

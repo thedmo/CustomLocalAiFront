@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 @inject IChatService ChatService
@@ -7,24 +7,44 @@
 
 <h1>Lokaler KI-Chat</h1>
 
-<section class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite">
-  @if (_eintraege.Count == 0)
-  {
-    <p class="text-secondary">Stelle deine erste Frage.</p>
-  }
+<div class="d-flex gap-3">
+  <aside class="unterhaltungs-liste" aria-label="Unterhaltungen">
+    @foreach (ChatUnterhaltung unterhaltung in _unterhaltungen)
+    {
+      <button type="button"
+              class="unterhaltungs-eintrag @(unterhaltung.Id == _unterhaltungId ? "active" : string.Empty)"
+              @onclick="() => WechsleUnterhaltung(unterhaltung.Id)">
+        @unterhaltung.Titel
+      </button>
+    }
 
-  @foreach (ChatEintrag eintrag in _eintraege)
-  {
-    <article class="chat-nachricht @(eintrag.IstBenutzer ? "chat-benutzer" : "chat-assistent")">
-      <strong>@(eintrag.IstBenutzer ? "Du" : "Assistent")</strong>
-      <p>@eintrag.Text</p>
-      @if (eintrag.IstAbgebrochen)
-      {
-        <small>Antwort abgebrochen</small>
-      }
-    </article>
-  }
-</section>
+    <button id="neue-unterhaltung"
+            type="button"
+            class="btn btn-outline-secondary"
+            @onclick="NeueUnterhaltungAsync">
+      Neue Unterhaltung
+    </button>
+  </aside>
+
+  <section class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite">
+    @if (AktiveEintraege.Count == 0)
+    {
+      <p class="text-secondary">Stelle deine erste Frage.</p>
+    }
+
+    @foreach (ChatEintrag eintrag in AktiveEintraege)
+    {
+      <article class="chat-nachricht @(eintrag.IstBenutzer ? "chat-benutzer" : "chat-assistent")">
+        <strong>@(eintrag.IstBenutzer ? "Du" : "Assistent")</strong>
+        <p>@eintrag.Text</p>
+        @if (eintrag.IstAbgebrochen)
+        {
+          <small>Antwort abgebrochen</small>
+        }
+      </article>
+    }
+  </section>
+</div>
 
 <div class="chat-eingabe">
   <label for="nachricht" class="form-label">Nachricht</label>
@@ -68,7 +88,7 @@
 
 @code {
   private readonly CancellationTokenSource _lebenszyklus = new();
-  private readonly List<ChatEintrag> _eintraege = [];
+  private readonly List<ChatUnterhaltung> _unterhaltungen = [];
   private Guid _unterhaltungId;
   private Guid? _aktiveAntwortId;
   private string _eingabe = string.Empty;
@@ -77,9 +97,41 @@
   private bool _sendet;
   private bool _abbruchAngefordert;
 
+  private List<ChatEintrag> AktiveEintraege =>
+    _unterhaltungen.First(u => u.Id == _unterhaltungId).Eintraege;
+
   protected override async Task OnInitializedAsync()
   {
-    _unterhaltungId = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+    await NeueUnterhaltungAsync();
+  }
+
+  private async Task NeueUnterhaltungAsync()
+  {
+    if (_sendet)
+    {
+      return;
+    }
+
+    Guid id = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+    _unterhaltungen.Add(new ChatUnterhaltung(id));
+    _unterhaltungId = id;
+    _eingabe = string.Empty;
+    _fehler = null;
+    _status = "Bereit";
+    await InvokeAsync(StateHasChanged);
+  }
+
+  private void WechsleUnterhaltung(Guid id)
+  {
+    if (_sendet)
+    {
+      return;
+    }
+
+    _unterhaltungId = id;
+    _eingabe = string.Empty;
+    _fehler = null;
+    _status = "Bereit";
   }
 
   private async Task SendeAsync()
@@ -103,9 +155,12 @@
         _lebenszyklus.Token);
       _eingabe = string.Empty;
       _aktiveAntwortId = lauf.AntwortId;
-      _eintraege.Add(new ChatEintrag(true, text));
+
+      ChatUnterhaltung unterhaltung = _unterhaltungen.First(u => u.Id == _unterhaltungId);
+      unterhaltung.Eintraege.Add(new ChatEintrag(true, text));
       ChatEintrag antwort = new(false, string.Empty);
-      _eintraege.Add(antwort);
+      unterhaltung.Eintraege.Add(antwort);
+      unterhaltung.Titel = text.Length > 20 ? text[..20] : text;
 
       await foreach (string teil in lauf.Teile.WithCancellation(_lebenszyklus.Token))
       {
@@ -149,6 +204,15 @@
     _lebenszyklus.Cancel();
     _lebenszyklus.Dispose();
     return ValueTask.CompletedTask;
+  }
+
+  private sealed class ChatUnterhaltung(Guid id)
+  {
+    public Guid Id { get; } = id;
+
+    public string Titel { get; set; } = "Neue Unterhaltung";
+
+    public List<ChatEintrag> Eintraege { get; } = [];
   }
 
   private sealed class ChatEintrag(bool istBenutzer, string text)

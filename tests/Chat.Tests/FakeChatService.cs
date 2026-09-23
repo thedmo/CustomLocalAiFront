@@ -18,6 +18,8 @@ public sealed class FakeChatService : IChatService
 
     public int SendeAufrufe { get; private set; }
 
+    public int NeueUnterhaltungAufrufe { get; private set; }
+
     public int AbbruchAufrufe { get; private set; }
 
     public Task SendenGestartet => _sendenGestartet.Task;
@@ -25,6 +27,7 @@ public sealed class FakeChatService : IChatService
     public Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        NeueUnterhaltungAufrufe++;
         return Task.FromResult(UnterhaltungId);
     }
 
