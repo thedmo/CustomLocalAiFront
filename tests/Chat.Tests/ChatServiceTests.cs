@@ -1,36 +1,10 @@
-using Chat.Adapter.ModelRunner;
 using Chat.Core;
 using Chat.Core.Modelle;
 
 namespace Chat.Tests;
 
-public sealed class ChatServiceTests
+public sealed partial class ChatServiceTests
 {
-    [Fact(Explicit = true)]
-    [Trait("Art", "Integration")]
-    public async Task ModelRunnerClient_EchterServer_LiefertTeile()
-    {
-        string adresse = Environment.GetEnvironmentVariable("MODEL_RUNNER_URL")
-            ?? throw new InvalidOperationException("MODEL_RUNNER_URL fehlt.");
-        string modell = Environment.GetEnvironmentVariable("MODEL_NAME")
-            ?? throw new InvalidOperationException("MODEL_NAME fehlt.");
-        Konfiguration konfiguration = GueltigeKonfiguration(adresse, modell);
-        ModelRunnerClient client = new(new HttpClient(), konfiguration);
-        Antwort antwort = new(Guid.NewGuid());
-        Nachricht nachricht = new(Guid.NewGuid(), "test", DateTimeOffset.UtcNow, antwort);
-
-        List<string> teile = [];
-        await foreach (string teil in client.StreamAntwortAsync(
-            [nachricht],
-            konfiguration.Systemanweisung,
-            TestContext.Current.CancellationToken))
-        {
-            teile.Add(teil);
-        }
-
-        Assert.NotEmpty(teile);
-    }
-
     [Fact]
     public async Task SendeNachricht_LeererText_WirftStoerfall()
     {
@@ -74,61 +48,25 @@ public sealed class ChatServiceTests
         Assert.NotEqual(Guid.Empty, lauf.AntwortId);
         Assert.Equal(0, client.Aufrufe);
 
-        IReadOnlyList<string> teile = await SammleAsync(lauf.Teile);
         Antwort antwort = unterhaltung.Nachrichten.Single().Antwort;
+        List<string> teile = [];
+        await using IAsyncEnumerator<string> enumerator = lauf.Teile.GetAsyncEnumerator(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(await enumerator.MoveNextAsync());
+        teile.Add(enumerator.Current);
+        Assert.Equal(AntwortZustand.Laeuft, antwort.Zustand);
+        Assert.Equal("Teil 1", antwort.Text);
+
+        Assert.True(await enumerator.MoveNextAsync());
+        teile.Add(enumerator.Current);
+        Assert.False(await enumerator.MoveNextAsync());
 
         Assert.Equal(["Teil 1", "Teil 2"], teile);
         Assert.Equal(AntwortZustand.Fertig, antwort.Zustand);
         Assert.Equal("Teil 1Teil 2", antwort.Text);
         Assert.NotNull(antwort.Dauer);
         Assert.True(store.Speicheraufrufe >= 2);
-    }
-
-    [Fact]
-    public async Task Abbrechen_VorErstemTeil_SpeichertAbgebrochen()
-    {
-        FakeModelServerClient client = new();
-        (ChatService service, _, Unterhaltung unterhaltung) = ErzeugeService(client);
-        AntwortLauf lauf = await service.SendeNachrichtAsync(
-            unterhaltung.Id,
-            "test",
-            CancellationToken.None);
-
-        await service.AbbrechenAsync(lauf.AntwortId, CancellationToken.None);
-        IReadOnlyList<string> teile = await SammleAsync(lauf.Teile);
-
-        Assert.Empty(teile);
-        Assert.Equal(0, client.Aufrufe);
-        Assert.Equal(
-            AntwortZustand.Abgebrochen,
-            unterhaltung.Nachrichten.Single().Antwort.Zustand);
-    }
-
-    [Fact]
-    public async Task Abbrechen_WaehrendStream_SpeichertTeilUndAbgebrochen()
-    {
-        FakeModelServerClient client = new()
-        {
-            Teile = ["Teil"],
-            BlockiereNachErstemTeil = true
-        };
-        (ChatService service, _, Unterhaltung unterhaltung) = ErzeugeService(client);
-        AntwortLauf lauf = await service.SendeNachrichtAsync(
-            unterhaltung.Id,
-            "test",
-            CancellationToken.None);
-        await using IAsyncEnumerator<string> enumerator = lauf.Teile.GetAsyncEnumerator(
-            TestContext.Current.CancellationToken);
-
-        Assert.True(await enumerator.MoveNextAsync());
-        Assert.Equal("Teil", enumerator.Current);
-
-        await service.AbbrechenAsync(lauf.AntwortId, CancellationToken.None);
-
-        Assert.False(await enumerator.MoveNextAsync());
-        Antwort antwort = unterhaltung.Nachrichten.Single().Antwort;
-        Assert.Equal("Teil", antwort.Text);
-        Assert.Equal(AntwortZustand.Abgebrochen, antwort.Zustand);
     }
 
     [Fact]
@@ -156,28 +94,6 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
-    public async Task SendeNachricht_Zeitlimit_ZustandGestoert()
-    {
-        FakeModelServerClient client = new() { BlockiereSofort = true };
-        Konfiguration konfiguration = GueltigeKonfiguration(zeitlimitSekunden: 1);
-        (ChatService service, _, Unterhaltung unterhaltung) = ErzeugeService(
-            client,
-            konfiguration);
-        AntwortLauf lauf = await service.SendeNachrichtAsync(
-            unterhaltung.Id,
-            "test",
-            CancellationToken.None);
-
-        StoerfallException ausnahme = await Assert.ThrowsAsync<StoerfallException>(
-            () => SammleAsync(lauf.Teile));
-
-        Antwort antwort = unterhaltung.Nachrichten.Single().Antwort;
-        Assert.Equal(Stoerfall.Zeitueberschreitung, ausnahme.Fall);
-        Assert.Equal(AntwortZustand.Gestoert, antwort.Zustand);
-        Assert.Equal(Stoerfall.Zeitueberschreitung, antwort.Fall);
-    }
-
-    [Fact]
     public void Konfiguration_AdresseLeer_WirftKonfigurationUngueltig()
     {
         Konfiguration konfiguration = new()
@@ -195,6 +111,19 @@ public sealed class ChatServiceTests
 
         Assert.Equal(Stoerfall.KonfigurationUngueltig, ausnahme.Fall);
         Assert.Contains(nameof(Konfiguration.AdresseModellserver), ausnahme.Message);
+    }
+
+    [Fact]
+    public void Konfiguration_ModellnameLeer_WirftKonfigurationUngueltig()
+    {
+        Konfiguration konfiguration = GueltigeKonfiguration(
+            "http://model-runner.invalid/engines/v1/",
+            string.Empty);
+
+        StoerfallException ausnahme = Assert.Throws<StoerfallException>(konfiguration.Pruefen);
+
+        Assert.Equal(Stoerfall.KonfigurationUngueltig, ausnahme.Fall);
+        Assert.Contains(nameof(Konfiguration.Modellname), ausnahme.Message);
     }
 
     [Fact]

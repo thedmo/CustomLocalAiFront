@@ -30,19 +30,33 @@ public sealed class ModelRunnerClient : IModelServerClient
 
         if (!antwort.IsSuccessStatusCode)
         {
-            throw ErzeugeStoerfall(antwort.StatusCode);
+            throw await ErzeugeStoerfallAsync(antwort, ct);
         }
 
-        await using Stream stream = await antwort.Content.ReadAsStreamAsync(ct);
+        await using Stream stream = await OeffneStreamAsync(antwort.Content, ct);
         using StreamReader reader = new(stream);
+        bool regulaerBeendet = false;
 
-        while (await reader.ReadLineAsync(ct) is { } zeile)
+        while (await LeseZeileAsync(reader, ct) is { } zeile)
         {
-            string? teil = LeseTeil(zeile);
-            if (!string.IsNullOrEmpty(teil))
+            SseEreignis ereignis = LeseEreignis(zeile);
+            if (ereignis.IstEnde)
             {
-                yield return teil;
+                regulaerBeendet = true;
+                break;
             }
+
+            if (!string.IsNullOrEmpty(ereignis.Teil))
+            {
+                yield return ereignis.Teil;
+            }
+        }
+
+        if (!regulaerBeendet)
+        {
+            throw new StoerfallException(
+                Stoerfall.ModellserverNichtErreichbar,
+                "Der Antwortstream wurde vor dem regulären Abschluss beendet.");
         }
     }
 
@@ -86,6 +100,44 @@ public sealed class ModelRunnerClient : IModelServerClient
                 Stoerfall.ModellserverNichtErreichbar,
                 "Der lokale Modellserver ist nicht erreichbar.");
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new StoerfallException(
+                Stoerfall.Zeitueberschreitung,
+                "Das technische Verbindungszeitlimit wurde überschritten.");
+        }
+    }
+
+    private static async Task<Stream> OeffneStreamAsync(
+        HttpContent inhalt,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await inhalt.ReadAsStreamAsync(ct);
+        }
+        catch (HttpRequestException)
+        {
+            throw new StoerfallException(
+                Stoerfall.ModellserverNichtErreichbar,
+                "Der Antwortstream des Modellservers konnte nicht geöffnet werden.");
+        }
+    }
+
+    private static async Task<string?> LeseZeileAsync(
+        StreamReader reader,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await reader.ReadLineAsync(ct);
+        }
+        catch (IOException)
+        {
+            throw new StoerfallException(
+                Stoerfall.ModellserverNichtErreichbar,
+                "Die Verbindung zum Antwortstream wurde unterbrochen.");
+        }
     }
 
     private static IReadOnlyList<ChatNachricht> BaueVerlauf(
@@ -107,28 +159,34 @@ public sealed class ModelRunnerClient : IModelServerClient
         return nachrichten;
     }
 
-    private static string? LeseTeil(string zeile)
+    private static SseEreignis LeseEreignis(string zeile)
     {
         if (!zeile.StartsWith("data:", StringComparison.Ordinal))
         {
-            return null;
+            return SseEreignis.Leer;
         }
 
         string daten = zeile[5..].TrimStart();
-        if (daten.Length == 0 || daten == "[DONE]")
+        if (daten == "[DONE]")
         {
-            return null;
+            return SseEreignis.Ende;
+        }
+
+        if (daten.Length == 0)
+        {
+            return SseEreignis.Leer;
         }
 
         try
         {
             using JsonDocument dokument = JsonDocument.Parse(daten);
-            return dokument.RootElement
+            string? teil = dokument.RootElement
                 .GetProperty("choices")[0]
                 .GetProperty("delta")
                 .TryGetProperty("content", out JsonElement inhalt)
                     ? inhalt.GetString()
                     : null;
+            return new SseEreignis(teil, false);
         }
         catch (Exception ausnahme) when (
             ausnahme is JsonException or InvalidOperationException or KeyNotFoundException)
@@ -139,15 +197,42 @@ public sealed class ModelRunnerClient : IModelServerClient
         }
     }
 
-    private static StoerfallException ErzeugeStoerfall(HttpStatusCode status)
+    private static async Task<StoerfallException> ErzeugeStoerfallAsync(
+        HttpResponseMessage antwort,
+        CancellationToken ct)
     {
-        Stoerfall fall = status is HttpStatusCode.BadRequest or HttpStatusCode.NotFound
+        string fehlerinhalt = await LeseFehlerinhaltAsync(antwort.Content, ct);
+        bool modellUnbekannt = antwort.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.NotFound
+            && EnthaeltUnbekanntesModell(fehlerinhalt);
+        Stoerfall fall = modellUnbekannt
             ? Stoerfall.ModellUnbekannt
             : Stoerfall.ModellserverNichtErreichbar;
 
         return new StoerfallException(
             fall,
-            $"Der Modellserver hat die Anfrage mit Status {(int)status} abgewiesen.");
+            $"Der Modellserver hat die Anfrage mit Status {(int)antwort.StatusCode} abgewiesen.");
+    }
+
+    private static async Task<string> LeseFehlerinhaltAsync(
+        HttpContent inhalt,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await inhalt.ReadAsStringAsync(ct);
+        }
+        catch (HttpRequestException)
+        {
+            return string.Empty;
+        }
+    }
+
+    private static bool EnthaeltUnbekanntesModell(string fehlerinhalt)
+    {
+        return fehlerinhalt.Contains("model", StringComparison.OrdinalIgnoreCase)
+            && (fehlerinhalt.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                || fehlerinhalt.Contains("unknown", StringComparison.OrdinalIgnoreCase)
+                || fehlerinhalt.Contains("does not exist", StringComparison.OrdinalIgnoreCase));
     }
 
     private sealed record ChatAnfrage(
@@ -160,4 +245,11 @@ public sealed class ModelRunnerClient : IModelServerClient
     private sealed record ChatNachricht(
         [property: JsonPropertyName("role")] string Rolle,
         [property: JsonPropertyName("content")] string Inhalt);
+
+    private sealed record SseEreignis(string? Teil, bool IstEnde)
+    {
+        public static SseEreignis Leer { get; } = new(null, false);
+
+        public static SseEreignis Ende { get; } = new(null, true);
+    }
 }
