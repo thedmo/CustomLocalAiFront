@@ -43,16 +43,9 @@
 
         try
         {
-
             var client = HttpClientFactory.CreateClient("ModelRunner");
             var model = Configuration["Chat:Modellname"]
                 ?? throw new InvalidOperationException("Chat:Modellname is missing.");
-
-
-
-            @* var client = HttpClientFactory.CreateClient("LiteLlm"); *@
-            // Modellalias muss in der LiteLLM-Konfiguration existieren.
-            @* var model = Configuration["LiteLlm:Model"] ?? "llm"; *@
 
             var request = new
             {
@@ -64,7 +57,6 @@
             };
 
             var response = await client.PostAsJsonAsync("chat/completions", request);
-            @* var response = await client.PostAsJsonAsync("/v1/chat/completions", request); *@
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<ChatCompletionResponse>();
@@ -72,7 +64,7 @@
         }
         catch (Exception ex)
         {
-            errorText = $"Fehler bei der Anfrage an Model runner: {ex.Message}";
+            errorText = $"Fehler bei der Anfrage an Model Runner: {ex.Message}";
         }
         finally
         {

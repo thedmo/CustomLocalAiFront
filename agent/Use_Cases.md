@@ -126,6 +126,7 @@ stateDiagram-v2
     state "Gestört" as G
     [*] --> A : sendeNachricht
     A --> L : erster Teil
+    A --> X : abbrechen vor erstem Teil
     L --> F : ende()
     L --> X : abbrechen()
     L --> G : Timeout, Verbindung weg

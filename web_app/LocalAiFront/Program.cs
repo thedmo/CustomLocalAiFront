@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Bindet an LiteLLM als OpenAI-kompatiblen Endpunkt; BaseUrl unterscheidet sich je nach Umgebung (siehe appsettings*.json).
+// Vorläufige direkte Model-Runner-Anbindung für den Verbindungstest; AP07 kapselt sie im Adapter.
 builder.Services.AddHttpClient("ModelRunner", client =>
 {
     var baseUrl = builder.Configuration["MODEL_RUNNER_URL"]

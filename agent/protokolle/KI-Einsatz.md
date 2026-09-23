@@ -7,6 +7,7 @@ Nie an ein externes KI-Werkzeug senden: Zugangsdaten, personenbezogene Informati
 | Datum | Karte | Werkzeug | Wofür (Entwurf, Code, Test, Fehlersuche, Doku) | Ergebnis übernommen als | Wie geprüft | Person |
 |---|---|---|---|---|---|---|
 | 22.09.2026 | AP06 | Claude Code | Entwurf dieser Regeldateien | Vorlage, in AP06 gelesen und geändert | Gruppe liest jede Regel, streicht oder ändert; Zeile 1 im Reviewprotokoll | RL |
+| 23.09.2026 | Vorbereitung AP07 | Codex | Ist-Analyse, Projektgerüste und Abgleich von Design, Schnittstellen, Tests, Karte und README nach Entfernung von LiteLLM | Änderungen im Arbeitsverzeichnis | Diff, Querverweissuche; Build blockiert, weil kein .NET SDK installiert ist | offen |
 | | | | | | | |
 
 ## Wo KI im Code beteiligt war

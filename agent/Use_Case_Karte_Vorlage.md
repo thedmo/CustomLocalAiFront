@@ -20,7 +20,7 @@ Datei nach `agent/use_cases/APxx-kurztitel.md` kopieren. Alle Felder der Definit
 
 ## 3. Betroffene Komponenten und Dateien
 
-[Chat.Core: IChatService, ChatService, Konfiguration, Störfall. Chat.Adapter.ModelRunner: ModelRunnerClient. Unberührt: Chat.Web, Chat.Store.Sqlite, docker-compose.yml.]
+[Chat.Core: IChatService, ChatService, Konfiguration, Störfall. Chat.Adapter.ModelRunner: ModelRunnerClient. Unberührt: Chat.Web, Chat.Store.Sqlite, docker_compose.yml.]
 
 ## 4. Akzeptanzkriterien (prüfbar, vorher festgelegt; beim Review abhaken)
 

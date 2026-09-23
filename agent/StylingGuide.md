@@ -54,7 +54,7 @@ Regel: Abhängigkeiten nur nach unten. `Chat.Web` referenziert nie Adapter oder 
 
 ## 7. Konfiguration (Konzept 7.4)
 
-- Alle Werte in `appsettings.json` unter dem Abschnitt `Chat`, überschreibbar per Umgebungsvariable (`Chat__Modellname`). Die Klasse `Konfiguration` wird beim Start validiert; ungültig heisst Störfall `KonfigurationUngueltig`, Meldung mit dem fehlenden Wert, Start bricht ab.
+- Alle Werte in `appsettings.json` unter dem Abschnitt `Chat`, überschreibbar per Umgebungsvariable (`Chat__Modellname`). Die Klasse `Konfiguration` wird vor einer Modellanfrage validiert; ungültig heisst Störfall `KonfigurationUngueltig` mit dem betroffenen Wertnamen, und der Modellserver wird nicht aufgerufen.
 - `appsettings.example.json` ist die Vorlage mit Platzhaltern. Persönliche Pfade, Geheimnisse, Hostnamen anderer Geräte: nie im Repository.
 - Werte werden gelesen, nie im Code verdrahtet. Eine Änderung wirkt nach Neustart des Containers ohne Neubau (Z02).
 
@@ -119,7 +119,8 @@ namespace Chat.Core;
 public interface IChatService
 {
     Task<Guid> NeueUnterhaltungAsync(CancellationToken ct);
-    IAsyncEnumerable<string> SendeNachrichtAsync(Guid unterhaltungId, string text, CancellationToken ct);
+    Task<AntwortLauf> SendeNachrichtAsync(Guid unterhaltungId, string text, CancellationToken ct);
+    Task AbbrechenAsync(Guid antwortId, CancellationToken ct);
     Task<IReadOnlyList<Unterhaltung>> ListeUnterhaltungenAsync(CancellationToken ct);
     Task<Unterhaltung> OeffneUnterhaltungAsync(Guid id, CancellationToken ct);
     Task LoescheUnterhaltungAsync(Guid id, CancellationToken ct);
@@ -148,18 +149,21 @@ Komponente, Streaming anzeigen (`Chat.Web/Components/Eingabe.razor`, Auszug):
 ```csharp
 private async Task SendenAsync()
 {
-    _cts = new CancellationTokenSource(_konfiguration.Zeitlimit);
     try
     {
-        await foreach (var teil in ChatService.SendeNachrichtAsync(UnterhaltungId, _eingabe, _cts.Token))
+        var lauf = await ChatService.SendeNachrichtAsync(UnterhaltungId, _eingabe, _lebenszyklusToken);
+        _aktiveAntwortId = lauf.AntwortId;
+        await foreach (var teil in lauf.Teile)
         {
             _teile.Add(teil);
             StateHasChanged();
         }
     }
-    catch (OperationCanceledException) { _status = "Abgebrochen, Teilantwort bleibt."; }
     catch (StoerfallException e) { _status = Meldung(e.Fall, e.Message); }
 }
+
+private Task AbbrechenAsync() =>
+    ChatService.AbbrechenAsync(_aktiveAntwortId, CancellationToken.None);
 ```
 
 ## 12. Review-Checkliste

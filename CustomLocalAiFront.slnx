@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Chat.Core/Chat.Core.csproj" />
+    <Project Path="src/Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Chat.Tests/Chat.Tests.csproj" />
+  </Folder>
+  <Folder Name="/web_app/">
+    <Project Path="web_app/LocalAiFront/LocalAiFront.csproj" />
+  </Folder>
+</Solution>

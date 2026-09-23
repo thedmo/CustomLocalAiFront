@@ -71,9 +71,9 @@ flowchart TB
 | 2 | READY prüfen, Karte ausfüllen | Entwickler (Karteninhaber) | `DoR_DoD.md`, `Use_Case_Karte_Vorlage.md`, `Use_Cases.md`, `Design.md`, `Schnittstellen.md`, `Testfaelle.md`, `Drittkomponenten.md`, Projektplan | `use_cases/APxx.md` (neu); `Testfaelle.md` (neue Fälle); `Drittkomponenten.md` (neue Abhängigkeit vor dem Bauen); Projektplan |
 | 3 | Auftrag an das Werkzeug | Entwickler | `use_cases/APxx.md` | nichts; der Prompt steht im Chat, Beispiel in `use_cases/AP07-backend-senden.md` |
 | 4 | Plan nennen, auf Zustimmung warten | KI-Werkzeug | `CLAUDE.md` oder `.github/copilot-instructions.md`, `AGENTS.md`, `README.md` (agent), Karte, `DoR_DoD.md`; die Leseordnung 1 bis 10 | nichts; Plan im Chat. Nicht READY: Stopp |
-| 5 | Bauen in kleinsten Schritten | KI-Werkzeug | Karte, `StylingGuide.md`, `Design.md`, `Schnittstellen.md`, `Testfaelle.md`, `Drittkomponenten.md`, `.editorconfig`, `appsettings.example.json` | `src/`, `tests/`: nur Dateien aus Feld 3 der Karte. Gesperrt: `docker-compose.yml`, `appsettings*.json`, `.csproj`, `global.json`, andere Schichten |
+| 5 | Bauen in kleinsten Schritten | KI-Werkzeug | Karte, `StylingGuide.md`, `Design.md`, `Schnittstellen.md`, `Testfaelle.md`, `Drittkomponenten.md`, `.editorconfig`, `appsettings.example.json` | `src/`, `tests/`: nur Dateien aus Feld 3 der Karte. Gesperrt: `docker_compose.yml`, `appsettings*.json`, `.csproj`, `global.json`, andere Schichten |
 | 6 | Selbstprüfung, Bericht, Diff | KI-Werkzeug | `Review_Checkliste.md`, `AGENTS.md` Abschnitt 9 | Karte, Abschnitt Ergebnis; `protokolle/KI-Einsatz.md` |
-| 7 | Diff lesen, starten, manuell testen | Entwickler | Karte, `Testfaelle.md`, `docker-compose.yml`, `appsettings.example.json`, Diff in `src/` und `tests/` | `protokolle/Test_und_Reviewprotokoll.md`; Karte: Manuell geprüft |
+| 7 | Diff lesen, starten, manuell testen | Entwickler | Karte, `Testfaelle.md`, `docker_compose.yml`, `appsettings.example.json`, Diff in `src/` und `tests/` | `protokolle/Test_und_Reviewprotokoll.md`; Karte: Manuell geprüft |
 | 8 | Review und Freigabe | Reviewer (anderes Mitglied) | `Review_Checkliste.md`, Karte, `StylingGuide.md`, `Schnittstellen.md`, `Design.md`, `Drittkomponenten.md`, Diff | `protokolle/Test_und_Reviewprotokoll.md` (Review-Zeile); Karte: Freigabe. Mängel: zurück zu 5 |
 | 9 | DONE, Commit, Board Erledigt | Entwickler | `DoR_DoD.md`, Karte, `StylingGuide.md`, `Drittkomponenten.md`, `.gitignore` | Karte: DoD-Kästchen; `README.md` (Root) bei Start- oder Installationsänderung; Projektplan: Erledigt, Dauer effektiv; Commit `APxx: ...` |
 | 10 | Abendblock: Soll-Ist, Journal | Projektleitung, 17:00 | Projektplan, Protokolle, Karten | Projektplan (Soll-Ist), Journal und Dropbox, Konzept 14.3 und 14.4 |
@@ -87,6 +87,6 @@ flowchart TB
 | Regeln | `Ablauf.md`, `DoR_DoD.md`, `StylingGuide.md`, `Review_Checkliste.md` | Gruppe, mit Zeile im Reviewprotokoll |
 | Export | `Use_Cases.md`, `Design.md`, `Schnittstellen.md` | Konzept ändern, neu exportieren (Projektleitung); Schnittstellen zusammen mit dem Konzept |
 | Lebend | `Testfaelle.md`, `Drittkomponenten.md`, `use_cases/`, `protokolle/` | Karteninhaber, Reviewer, Werkzeug (nur Ergebnisabschnitt der Karte und KI-Einsatz); nur ergänzen, nie leeren |
-| Konfiguration | `docker-compose.yml`, `appsettings.example.json`, `.editorconfig`, `.gitignore` | Gruppe in AP06; danach nur über eine Karte, die die Datei nennt |
+| Konfiguration | `docker_compose.yml`, `appsettings.example.json`, `.editorconfig`, `.gitignore` | Gruppe in AP06; danach nur über eine Karte, die die Datei nennt |
 | Code | `src/`, `tests/` (entstehen in AP06) | Werkzeug und Entwickler, nur innerhalb einer Karte |
 | Extern | Konzept (Word), Projektplan (Excel), Kursunterlagen, Journal und Dropbox | Gruppe beziehungsweise Projektleitung; das Werkzeug nie |

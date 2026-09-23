@@ -11,7 +11,7 @@ Vorschlag als Gerüste; Rod führt die Tabelle in AP11 zu Ende und überträgt s
 | T01 | F03 neue Unterhaltung | Anwendung läuft | Knopf Neue Unterhaltung | leere Unterhaltung mit Kennung, erscheint in der Liste | manuell, auto (ChatService) | M05 |
 | T02 | F01 Nachricht senden | Modellserver erreichbar | Text eingeben, Senden | erster Teil innerhalb des Zeitlimits, Antwort endet mit Zustand Fertig | manuell, auto (Fake-Adapter) | M05, M06 |
 | T03 | F01 Antwort schrittweise | wie T02 | lange Frage senden | Teile erscheinen nacheinander, nicht als Block | manuell | M06 |
-| T04 | F02 Abbrechen | Antwort läuft | Abbrechen während der Ausgabe | Ausgabe stoppt, Teilantwort bleibt markiert, Zustand Abgebrochen, Eingabe sofort frei | manuell, auto | M06 |
+| T04 | F02 Abbrechen | Antwort angefordert oder läuft | Abbrechen vor dem ersten Teil und während der Ausgabe | Modellaufruf beziehungsweise Ausgabe stoppt, vorhandene Teilantwort bleibt markiert, Zustand Abgebrochen, Eingabe sofort frei | manuell, auto | M06 |
 | T05 | F04 Unterhaltung öffnen | zwei Unterhaltungen gespeichert | Liste, zweite Unterhaltung wählen | Verlauf in richtiger Reihenfolge, auch nach Neustart der Anwendung | manuell, auto (Store) | M08 |
 | T06 | F05 Unterhaltung löschen | Unterhaltung mit Antworten | Löschen, bestätigen | Unterhaltung samt Nachrichten und Antworten weg, Protokoll bleibt | manuell, auto (Store) | M08 |
 | T07 | F06 Modellserver nicht erreichbar | Modellserver gestoppt | Nachricht senden | verständliche Meldung mit Grund, kein Absturz, Eingabe frei | manuell, auto (Fake wirft Störfall) | M09 |
@@ -19,7 +19,7 @@ Vorschlag als Gerüste; Rod führt die Tabelle in AP11 zu Ende und überträgt s
 | T09 | 4.7 Erweiterung 2a leere Eingabe | Anwendung läuft | leeren Text senden | Hinweis, kein Aufruf des Modellservers | auto | M09 |
 | T10 | 4.7 Erweiterung 2b zu lange Eingabe | Eingabegrenze 4000 | 4001 Zeichen senden | Hinweis mit Grenze, kein Aufruf | auto | M09 |
 | T11 | Zeitüberschreitung | Zeitlimit 5 Sekunden, Modell langsam | Nachricht senden | Zustand Gestört mit Grund Zeitüberschreitung, Eingabe frei | auto (Fake mit Verzögerung) | M09 |
-| T12 | Zustandsübergänge | Fake-Adapter | je Pfeil des Zustandsdiagramms ein Lauf | nur die acht erlaubten Übergänge, kein anderer | auto | M06 |
+| T12 | Zustandsübergänge | Fake-Adapter | je dokumentierten Übergang ein Lauf | nur die sechs erlaubten Übergänge, kein anderer | auto | M06 |
 
 ## Nichtfunktionale Testfälle (mindestens fünf)
 

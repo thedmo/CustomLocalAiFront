@@ -22,7 +22,7 @@ Dieses Verzeichnis ist der Vorschlag für die Wurzel des Repositorys (Arbeitspak
 | `agent/Use_Cases.md`                           | Das Was: Funktionsliste, nichtfunktionale Anforderungen, Haupt-Use-Case F01 mit SSD und Zuständen, Ziele mit Nachweis; Export aus dem Konzept     | Konzept 4, 5      |
 | `agent/Design.md`                              | Das Wie: Architektur, Komponenten, Klassendiagramm, Datenfluss, Konfiguration, Oberfläche, Daten; Export aus dem Konzept, Diagramme als Mermaid   | Konzept 7 bis 9   |
 | `agent/Testfaelle.md`                          | Nummerierte Testfälle, funktional und nichtfunktional, mit Art und Nachweis; Karten verweisen auf die Nummern                                     | Konzept 11, S. 12 |
-| `docker-compose.yml`                           | Gerüst für Anwendung und Model Runner                                                                                                             | Konzept 6.5, 12   |
+| `docker_compose.yml`                           | Anwendung mit direkter Anbindung an Docker Model Runner                                                                                           | Konzept 6.5, 12   |
 
 ## Der ganze Workflow: vom Konzept zum Commit
 
@@ -44,7 +44,8 @@ Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
 002_Umsetzung/
   AGENTS.md                    Einstieg für jedes KI-Werkzeug (Folie 10: zentral in der Root), zeigt auf agent/
   README.md                    diese Datei
-  .editorconfig, .gitignore, appsettings.example.json, docker-compose.yml, global.json [AP06]
+  .editorconfig, .gitignore, docker_compose.yml, global.json
+  CustomLocalAiFront.slnx       Lösung für Web, Core, Adapter und Tests
   agent/                       alles, was das Werkzeug und die Menschen für eine Karte brauchen, an einem Ort
     README.md                  Leseordnung und Zweck jeder Datei
     Ablauf.md, DoR_DoD.md, StylingGuide.md, Review_Checkliste.md      Regeln (fest)
@@ -53,26 +54,24 @@ Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
     use_cases/                 eine Datei je Karte (lebend)
     protokolle/                KI-Einsatz.md, Test_und_Reviewprotokoll.md (lebend)
   src/
-    Chat.Web/                  Blazor Interactive Server: Chat-Seite, Komponenten, CSS im HFU-Design
     Chat.Core/                 IChatService, ChatService, Modelle, IModelServerClient, IStore, Konfiguration, Störfall
     Chat.Adapter.ModelRunner/  einziger Ort, der die API des Docker Model Runner kennt
-    Chat.Store.Sqlite/         Entity Framework Core, SQLite, Protokoll
   tests/
     Chat.Tests/                xUnit: ChatService mit Fake-Adapter und Speicher im Arbeitsspeicher
+  web_app/LocalAiFront/        bestehendes Blazor-Projekt; wird in AP08 über IChatService angebunden
   data/                        SQLite-Datei und Protokoll zur Laufzeit, nie im Repository
 ```
 
-Abhängigkeiten nur nach unten: `Chat.Web` kennt `Chat.Core`, nie den Adapter oder den Store direkt. Die Verdrahtung passiert in `Program.cs` per Dependency Injection.
+Abhängigkeiten nur nach unten: Das Blazor-Projekt kennt `Chat.Core`, nie den Adapter oder den Store direkt. Die Verdrahtung passiert in `Program.cs` per Dependency Injection. `Chat.Store.Sqlite` entsteht erst mit AP09.
 
-## Start (wird in AP06 ergänzt)
+## Start
 
 ### Entwicklung / Debugging (lokal, ausserhalb Docker)
 
-Voraussetzung: LiteLLM und der Modellserver laufen per Compose (siehe unten), da die App sich lokal über `http://localhost:4000` mit LiteLLM verbindet.
+Voraussetzungen: .NET 10 SDK und Docker Desktop mit aktiviertem Docker Model Runner. Das Modell wird vor dem Offlinebetrieb lokal geladen.
 
 ```
 python install_environment.py          # einmalig: appsettings.Development.json anlegen, Modell laden
-docker compose -f docker_compose.yml up litellm   # LiteLLM + Model Runner starten
 ```
 
 Danach in VS Code **F5** drücken (nutzt das `https`-Profil aus `web_app/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`) oder:
@@ -85,12 +84,12 @@ dotnet run
 ### Produktion / gesamter Stack (Docker)
 
 ```
-docker compose -f docker_compose.yml up      Anwendung, LiteLLM und Modellserver als Container
+docker compose -f docker_compose.yml up      Anwendung; Docker Desktop stellt den Model Runner bereit
 dotnet test                                  alle Tests
 dotnet format                                Formatierung nach .editorconfig
 ```
 
-Das Gateway ist danach unter `http://localhost:80` erreichbar, LiteLLM unter `http://localhost:4000`. Das zu ladende Modell wird zentral in `.env` über `MODEL_NAME` festgelegt (Vorlage: `.env.example`).
+Die Anwendung ist danach unter `http://localhost:80` erreichbar. Docker Compose übergibt die Model-Runner-Adresse direkt an die Anwendung. Das zu ladende Modell wird zentral in `.env` über `MODEL_NAME` festgelegt (Vorlage: `.env.example`).
 
 ## Zusammenführung der zwei Entwürfe
 
@@ -99,7 +98,7 @@ Aus Pascals `Agent_Setup` übernommen: das Antwortmuster des Werkzeugs (jetzt `A
 ## Was in AP06 zu tun ist (eine Stunde zu dritt)
 
 1. `AGENTS.md`, `agent/StylingGuide.md`, `agent/DoR_DoD.md`, `agent/Ablauf.md` laut lesen, ändern, freigeben. Erste Zeile im Reviewprotokoll: das Gerüst selbst.
-2. .NET-Version festlegen (`global.json`), Lösung mit den fünf Projekten anlegen, `dotnet build` grün.
-3. `docker-compose.yml` mit Anwendung und Model Runner; `appsettings.example.json` gegen Konzept 7.4 prüfen; Adresse des Model Runner aus dem Spike in `agent/Schnittstellen.md` eintragen.
+2. .NET-Version festlegen (`global.json`), Lösung und Projektgerüste anlegen, `dotnet build` grün.
+3. `docker_compose.yml` mit Anwendung und direkter Model-Runner-Anbindung; `appsettings.example.json` gegen Konzept 7.4 prüfen.
 4. Erste Karte nach `agent/Use_Case_Karte_Vorlage.md` anlegen: AP07 Backend senden (F01, F07).
 5. Konzept Kapitel 15: ein Absatz, der auf diese Dateien zeigt.
