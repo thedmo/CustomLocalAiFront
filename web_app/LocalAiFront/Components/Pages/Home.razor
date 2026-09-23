@@ -46,13 +46,8 @@
 
             var client = HttpClientFactory.CreateClient("ModelRunner");
             var model = Configuration["Chat:Modellname"]
-                ?? throw new InvalidOperationException("Chat:Modellname is missing.");
-
-
-
-            @* var client = HttpClientFactory.CreateClient("LiteLlm"); *@
-            // Modellalias muss in der LiteLLM-Konfiguration existieren.
-            @* var model = Configuration["LiteLlm:Model"] ?? "llm"; *@
+                ?? Configuration["MODEL_NAME"]
+                ?? throw new InvalidOperationException("MODEL_NAME is missing.");
 
             var request = new
             {
