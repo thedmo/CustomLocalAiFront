@@ -10,7 +10,7 @@ Nie an ein externes KI-Werkzeug senden: Zugangsdaten, personenbezogene Informati
 | 23.09.2026 | Vorbereitung AP07 | Codex | Ist-Analyse, Projektgerüste und Abgleich von Design, Schnittstellen, Tests, Karte und README nach Entfernung von LiteLLM | Änderungen im Arbeitsverzeichnis | Diff, Querverweissuche; Build blockiert, weil kein .NET SDK installiert ist | offen |
 | 23.09.2026 | AP07 | Codex | ChatService, Lebenszyklus und Abbruch, Model-Runner-SSE-Adapter, Fehlerabbildung, automatisierte Tests und Kartenbericht | Code und Tests im Arbeitsverzeichnis | Solution-Build 0 Warnungen/0 Fehler; 16 Tests bestanden; AP07-Projekte formatkonform; Integration und menschliches Review offen | offen |
 | 23.09.2026 | F01 | Codex | Chat-Seite mit Streaming und Abbruch, Backend-Verdrahtung, Arbeitsspeicher-Store, Docker-Build und bUnit-Komponententests | Code, Tests und Dokumentation im Arbeitsverzeichnis | 21 Tests bestanden; Formatprüfung grün; Container gebaut und Healthy; manueller Browsertest und Review offen | PS |
-| | | | | | | |
+| 23.09.2026 | F03 | GitHub Copilot | neue Unterhaltung im UI, vertikale Liste, aktive Hervorhebung, Scroll- und Layoutkorrektur, bUnit-Test-Setup für JS-Interop | Code und Tests im Arbeitsverzeichnis | ChatSeite-Regression: 5/5 Tests grün; Diff geprüft | offen |
 
 ## Wo KI im Code beteiligt war
 
