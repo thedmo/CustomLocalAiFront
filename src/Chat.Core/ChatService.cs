@@ -21,6 +21,16 @@ public sealed class ChatService : IChatService
         _konfiguration = konfiguration;
     }
 
+    public async Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
+    {
+        Unterhaltung unterhaltung = new(
+            Guid.NewGuid(),
+            "Neue Unterhaltung",
+            DateTimeOffset.UtcNow);
+        await _store.SpeichernAsync(unterhaltung, ct);
+        return unterhaltung.Id;
+    }
+
     public async Task<AntwortLauf> SendeNachrichtAsync(
         Guid unterhaltungId,
         string text,

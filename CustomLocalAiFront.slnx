@@ -7,5 +7,4 @@
   <Folder Name="/tests/">
     <Project Path="tests/Chat.Tests/Chat.Tests.csproj" />
   </Folder>
-  <Folder Name="/web_app/" />
 </Solution>

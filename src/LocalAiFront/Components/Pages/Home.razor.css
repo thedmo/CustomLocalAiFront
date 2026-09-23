@@ -1,0 +1,58 @@
+.chat-verlauf {
+  display: grid;
+  gap: 1rem;
+  min-height: 16rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+}
+
+.chat-nachricht {
+  max-width: 75%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+  overflow-wrap: anywhere;
+}
+
+.chat-nachricht p {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+}
+
+.chat-benutzer {
+  justify-self: end;
+}
+
+.chat-assistent {
+  justify-self: start;
+}
+
+.chat-eingabe {
+  max-width: 50rem;
+}
+
+.chat-aktionen {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.chat-status {
+  margin-top: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+@media (max-width: 576px) {
+  .chat-nachricht {
+    max-width: 100%;
+  }
+
+  .chat-aktionen {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

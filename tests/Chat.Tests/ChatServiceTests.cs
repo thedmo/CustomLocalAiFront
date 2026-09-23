@@ -6,6 +6,19 @@ namespace Chat.Tests;
 public sealed partial class ChatServiceTests
 {
     [Fact]
+    public async Task NeueUnterhaltung_SpeichertLeereUnterhaltung()
+    {
+        SpeicherStore store = new();
+        ChatService service = new(new FakeModelServerClient(), store, GueltigeKonfiguration());
+
+        Guid id = await service.NeueUnterhaltungAsync(CancellationToken.None);
+        Unterhaltung unterhaltung = await store.LadenAsync(id, CancellationToken.None);
+
+        Assert.Equal(id, unterhaltung.Id);
+        Assert.Empty(unterhaltung.Nachrichten);
+    }
+
+    [Fact]
     public async Task SendeNachricht_LeererText_WirftStoerfall()
     {
         FakeModelServerClient client = new();

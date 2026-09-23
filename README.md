@@ -53,15 +53,15 @@ Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
     use_cases/                 eine Datei je Karte (lebend)
     protokolle/                KI-Einsatz.md, Test_und_Reviewprotokoll.md (lebend)
   src/
-    Chat.Core/                 IChatService, ChatService, Modelle, IModelServerClient, IStore, Konfiguration, Störfall
+    Chat.Core/                 IChatService, ChatService, Modelle, IModelServerClient, IStore, Arbeitsspeicher-Store, Konfiguration, Störfall
     Chat.Adapter.ModelRunner/  einziger Ort, der die API des Docker Model Runner kennt
   tests/
-    Chat.Tests/                xUnit: ChatService mit Fake-Adapter und Speicher im Arbeitsspeicher
-  web_app/LocalAiFront/        bestehendes Blazor-Projekt; wird in AP08 über IChatService angebunden
+    Chat.Tests/                xUnit und bUnit: ChatService, Adapter und Chat-Seite mit Fakes
+  web_app/LocalAiFront/        Blazor-Chat-Seite; über IChatService mit dem Backend verbunden
   data/                        SQLite-Datei und Protokoll zur Laufzeit, nie im Repository
 ```
 
-Abhängigkeiten nur nach unten: Das Blazor-Projekt kennt `Chat.Core`, nie den Adapter oder den Store direkt. Die Verdrahtung passiert in `Program.cs` per Dependency Injection. `Chat.Store.Sqlite` entsteht erst mit AP09.
+Abhängigkeiten zeigen nur nach unten: Die Blazor-Komponenten kennen ausschliesslich `Chat.Core`. Der Composition Root in `Program.cs` verdrahtet `ChatService`, den Model-Runner-Adapter und bis AP09 den Arbeitsspeicher-Store per Dependency Injection. `Chat.Store.Sqlite` entsteht erst mit AP09.
 
 ## Start
 
