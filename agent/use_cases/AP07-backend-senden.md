@@ -2,13 +2,13 @@
 
 Entwurf für den ersten Probelauf des Workflows am Mittwoch 23.09.2026. Benjamin prüft und ergänzt die Felder, bevor der Auftrag an das Werkzeug geht.
 
-| Feld | Inhalt |
-|---|---|
-| Verantwortlich | BH |
-| Halbtag | Mi AM (ab 10:30) |
-| Referenz | F01 Nachricht senden, F02 Abbrechen, F07 Konfiguration; Z01 offline, Z02 Konfiguration, Z03 Antwort in Teilen; M05, M06, M09 |
-| Quellen | `agent/Use_Cases.md` Haupt-Use-Case F01, Standardablauf 1 bis 6 und Erweiterungen 2a, 2b, 3a, 3b, 4a und 4b; `agent/Design.md` Komponenten und Datenfluss; `agent/Schnittstellen.md` IChatService, IModelServerClient, Konfiguration |
-| Testfälle | T02, T04, T07, T08, T09, T10, T11, T12 aus `agent/Testfaelle.md` |
+| Feld           | Inhalt                                                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Verantwortlich | BH                                                                                                                                                                                                                                   |
+| Halbtag        | Mi AM (ab 10:30)                                                                                                                                                                                                                     |
+| Referenz       | F01 Nachricht senden, F02 Abbrechen, F07 Konfiguration; Z01 offline, Z02 Konfiguration, Z03 Antwort in Teilen; M05, M06, M09                                                                                                         |
+| Quellen        | `agent/Use_Cases.md` Haupt-Use-Case F01, Standardablauf 1 bis 6 und Erweiterungen 2a, 2b, 3a, 3b, 4a und 4b; `agent/Design.md` Komponenten und Datenfluss; `agent/Schnittstellen.md` IChatService, IModelServerClient, Konfiguration |
+| Testfälle      | T02, T04, T07, T08, T09, T10, T11, T12 aus `agent/Testfaelle.md`                                                                                                                                                                     |
 
 **READY-Status:** fachlich und vom Gruppenmitglied freigegeben. Das Zielbild wurde in das Masterkonzept übernommen, der Umfang mit automatisierten Tests für einen Halbtag bestätigt und das .NET 10 SDK installiert.
 
@@ -20,15 +20,15 @@ Der ChatService nimmt eine Nachricht mit Kennung der Unterhaltung an, prüft sie
 
 AP07 bildet den Backend-Teil des in `agent/Use_Cases.md` beschriebenen Haupt-Use-Case ab. Der vollständige Bedienablauf entsteht aus den folgenden Karten:
 
-| Schritt des Haupt-Use-Case | Zuständige Karte |
-|---|---|
-| 1 Nachricht eingeben und senden | F01 Chat-Seite |
-| 2 Eingabe prüfen | AP07; Anzeige der Nachricht durch F01 Chat-Seite |
-| 3 Verlauf und Systemanweisung an den Model Runner senden | AP07 |
-| 4 Teile einzeln bereitstellen | AP07; sofort anzeigen und Eingabe sperren durch F01 Chat-Seite |
-| 5 Antwort abschliessen | AP07; dauerhafte Speicherung durch AP09 und technisches Protokoll durch AP12 |
-| 6 Eingabe wieder freigeben | F01 Chat-Seite |
-| Erweiterung 4a laufende Antwort abbrechen | AP07 verwaltet den Abbruch; F01 Chat-Seite bietet die Bedienung und lässt die Teilantwort sichtbar |
+| Schritt des Haupt-Use-Case                               | Zuständige Karte                                                                                   |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1 Nachricht eingeben und senden                          | F01 Chat-Seite                                                                                     |
+| 2 Eingabe prüfen                                         | AP07; Anzeige der Nachricht durch F01 Chat-Seite                                                   |
+| 3 Verlauf und Systemanweisung an den Model Runner senden | AP07                                                                                               |
+| 4 Teile einzeln bereitstellen                            | AP07; sofort anzeigen und Eingabe sperren durch F01 Chat-Seite                                     |
+| 5 Antwort abschliessen                                   | AP07; dauerhafte Speicherung durch AP09 und technisches Protokoll durch AP12                       |
+| 6 Eingabe wieder freigeben                               | F01 Chat-Seite                                                                                     |
+| Erweiterung 4a laufende Antwort abbrechen                | AP07 verwaltet den Abbruch; F01 Chat-Seite bietet die Bedienung und lässt die Teilantwort sichtbar |
 
 ## 2. Abgrenzung (gehört nicht dazu)
 
@@ -96,28 +96,33 @@ und eine Zeile in agent/protokolle/KI-Einsatz.md. Kein Commit.
 Karte: AP07 Backend-Teil des Haupt-Use-Case streamt und bricht ab
 
 Umgesetzt:
+
 - ChatService prüft Eingaben und Konfiguration, liefert die Antwort-ID vor dem Modellaufruf, reicht Teile einzeln weiter und speichert genau einen Endzustand.
 - Benutzerabbruch, Gesamtzeitlimit und Verlust des technischen Lebenszyklus werden unterschieden; vorhandene Teile bleiben erhalten.
 - ModelRunnerClient sendet den rollengetrennten Verlauf, liest SSE bis zum zwingenden `[DONE]` und übersetzt Transport-, Stream-, Modell- und Zeitfehler in bereinigte Störfälle.
 - Zustandsübergänge und alle Grenzfälle der Karte sind automatisiert geprüft.
 
 Geänderte Dateien:
+
 - `src/Chat.Core/ChatService.cs`, `src/Chat.Core/AktiveAnfrage.cs`, `src/Chat.Core/Modelle/Antwort.cs`
 - `src/Chat.Adapter.ModelRunner/ModelRunnerClient.cs`
 - `tests/Chat.Tests/ChatServiceTests.cs`, `tests/Chat.Tests/ChatServiceAbbruchTests.cs`, `tests/Chat.Tests/ModelRunnerClientTests.cs`
 - `agent/use_cases/AP07-backend-senden.md`, `agent/protokolle/KI-Einsatz.md`
 
 Nicht angefasst (bewusst):
+
 - `web_app/LocalAiFront`, `src/Chat.Store.Sqlite`, `docker_compose.yml`, `appsettings*.json`, alle `.csproj` und `global.json`
 - Nicht zu AP07 gehörende Operationen von `IChatService` für F03 bis F06
 
 Prüfungen:
+
 - `dotnet build CustomLocalAiFront.slnx --disable-build-servers -m:1`: OK, 0 Warnungen, 0 Fehler
 - `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 16 bestanden, 0 fehlgeschlagen, 1 expliziter Integrationstest nicht ausgeführt
 - `dotnet format` für `Chat.Core`, `Chat.Adapter.ModelRunner` und `Chat.Tests`: keine Änderung
 - `git diff --check`: OK
 
 Selbstprüfung (`agent/Review_Checkliste.md`):
+
 - Fachlichkeit: ja; Akzeptanzkriterien erfüllt, keine fachliche Erweiterung.
 - Namen und Verständlichkeit: ja; Fachbegriffe und Dateigrössen entsprechen dem StylingGuide.
 - Schichtgrenzen: ja; nur der Adapter kennt HTTP und das Model-Runner-Protokoll.
@@ -136,6 +141,7 @@ Selbstprüfung (`agent/Review_Checkliste.md`):
 - Nachvollziehbarkeit: ja; KI-Eintrag ergänzt, Commit-Nachricht vorgeschlagen.
 
 Offen, Risiken, Befunde ausserhalb der Karte:
+
 - Der explizite Integrationstest `ModelRunnerClient_EchterServer_LiefertTeile` und der manuelle Abbruchtest gegen Docker Model Runner stehen aus.
 - Review und Freigabe durch PS stehen aus; das Werkzeug gibt die Karte nicht selbst frei.
 - Die vollständige Solution-Formatprüfung meldet Zeilenenden in `web_app/LocalAiFront/Program.cs`; die Datei liegt ausserhalb von AP07 und wurde nicht geändert. Die drei AP07-Projekte sind formatkonform.
@@ -144,6 +150,7 @@ Offen, Risiken, Befunde ausserhalb der Karte:
 Vorschlag Commit-Nachricht: `AP07: Backend streamt und verwaltet Abbruch` / `KI: Codex, geprueft von PS`
 
 Definition of Done:
+
 - Punkte 2 bis 4 und 7 technisch erfüllt.
 - Punkte 1 und 5 benötigen den Lauf gegen Docker Model Runner.
 - Punkt 6 benötigt Review und Freigabe durch PS.

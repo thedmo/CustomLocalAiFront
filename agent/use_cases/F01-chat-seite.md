@@ -2,13 +2,13 @@
 
 **Status:** Umgesetzt, Review offen. Verantwortlichkeit, Halbtag, Gesamtumfang und bUnit als neue Testabhängigkeit wurden durch PS am 23.09.2026 freigegeben.
 
-| Feld | Inhalt |
-|---|---|
-| Verantwortlich | PS (Pascal Schmidiger) |
-| Halbtag | Mi PM |
-| Referenz | F01 Nachricht senden, F02 Abbrechen; Z03 Antwort in Teilen; M05, M06 |
-| Quellen | `agent/Use_Cases.md` Haupt-Use-Case Schritte 1, 2, 4 und 6 sowie Erweiterungen 2a, 2b, 3a, 3b, 4a und 4b; `agent/Design.md` Oberfläche und Datenfluss; `agent/Schnittstellen.md` `IChatService` |
-| Testfälle | T02, T03, T04, T07, T09, T10, T11 aus `agent/Testfaelle.md` |
+| Feld           | Inhalt                                                                                                                                                                                          |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verantwortlich | PS (Pascal Schmidiger)                                                                                                                                                                          |
+| Halbtag        | Mi PM                                                                                                                                                                                           |
+| Referenz       | F01 Nachricht senden, F02 Abbrechen; Z03 Antwort in Teilen; M05, M06                                                                                                                            |
+| Quellen        | `agent/Use_Cases.md` Haupt-Use-Case Schritte 1, 2, 4 und 6 sowie Erweiterungen 2a, 2b, 3a, 3b, 4a und 4b; `agent/Design.md` Oberfläche und Datenfluss; `agent/Schnittstellen.md` `IChatService` |
+| Testfälle      | T02, T03, T04, T07, T09, T10, T11 aus `agent/Testfaelle.md`                                                                                                                                     |
 
 ## 1. Ziel (ein Satz)
 
@@ -59,6 +59,7 @@ Projektplan: F01, Mi PM, Verantwortlich PS, Status In Arbeit; WIP von PS damit 1
 Karte: F01 Chat-Seite zeigt die Antwort schrittweise und bricht sie ab
 
 Umgesetzt:
+
 - Die bisherige direkte HTTP-Testseite wurde durch eine Chat-Seite ersetzt, die ausschliesslich `IChatService` verwendet.
 - Eigene Nachricht und Antwort erscheinen im Verlauf; jeder Streamteil aktualisiert dieselbe Antwort sofort.
 - Während der Antwort sind Eingabe und Senden gesperrt. Abbrechen beendet die aktive Antwort, markiert und erhält den vorhandenen Text und erlaubt eine weitere Frage.
@@ -67,16 +68,19 @@ Umgesetzt:
 - Der Docker-Buildkontext umfasst die drei referenzierten Projekte; das Image wurde gebaut und der Container als gesund gestartet.
 
 Geänderte Dateien:
+
 - `src/Chat.Core/IChatService.cs`, `src/Chat.Core/ChatService.cs`, `src/Chat.Core/ArbeitsspeicherStore.cs`
 - `web_app/LocalAiFront/LocalAiFront.csproj`, `Program.cs`, `Components/_Imports.razor`, `Components/Pages/Home.razor`, `Components/Pages/Home.razor.css`, `Dockerfile`
 - `tests/Chat.Tests/Chat.Tests.csproj`, `ChatServiceTests.cs`, `ChatSeiteTests.cs`, `FakeChatService.cs`
 - `.dockerignore`, `docker_compose.yml`, `README.md`, `agent/Drittkomponenten.md`, `agent/protokolle/KI-Einsatz.md`, diese Karte
 
 Nicht angefasst (bewusst):
+
 - `src/Chat.Adapter.ModelRunner/ModelRunnerClient.cs`, `src/Chat.Store.Sqlite`, `global.json`, `appsettings*.json`
 - Dauerhafte Speicherung, Unterhaltungsverwaltung über mehrere Unterhaltungen und technisches Dateiprotokoll
 
 Prüfungen:
+
 - `dotnet build CustomLocalAiFront.slnx --no-restore --disable-build-servers -m:1`: OK, 0 Fehler; eine NU1900-Warnung, weil der NuGet-Sicherheitsindex in der Umgebung nicht erreichbar ist
 - `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 21 bestanden, 0 fehlgeschlagen, 1 expliziter AP07-Integrationstest nicht ausgeführt
 - `dotnet format` für `Chat.Core`, `LocalAiFront` und `Chat.Tests`: keine Änderung
@@ -85,6 +89,7 @@ Prüfungen:
 - `git diff --check`: OK
 
 Selbstprüfung (`agent/Review_Checkliste.md`):
+
 - Fachlichkeit: ja; F01/F02, Z03 und M06 sind in Komponententests abgedeckt.
 - Akzeptanzkriterien und Umfang: ja; alle Kriterien automatisiert erfüllt, keine Funktion ausserhalb der freigegebenen Gesamtkarte ergänzt.
 - Namen und Verständlichkeit: ja; deutsche Fachbegriffe, technische Begriffe und Dateigrössen entsprechen dem StylingGuide.
@@ -104,6 +109,7 @@ Selbstprüfung (`agent/Review_Checkliste.md`):
 - Nachvollziehbarkeit: ja; Karte, Drittkomponente, README und KI-Einsatz aktualisiert.
 
 Offen, Risiken, Befunde ausserhalb der Karte:
+
 - PS prüft T03 und T04 unter `http://localhost` bei Desktop- und Mobilbreite und trägt das Ergebnis ins Test- und Reviewprotokoll ein.
 - Review und Freigabe durch ein Gruppenmitglied stehen aus; das Werkzeug gibt die Karte nicht selbst frei.
 - Docker meldet bereits vorhandene verwaiste Container `litellm` und `e41776f9cc56_llm-response-demo-container`. Sie wurden nicht verändert oder entfernt.
@@ -112,6 +118,7 @@ Offen, Risiken, Befunde ausserhalb der Karte:
 Vorschlag Commit-Nachricht: `F01: Chat-Seite zeigt Antworten schrittweise` / `KI: Codex, geprueft von PS`
 
 Definition of Done:
+
 - Punkte 1 bis 4 und 7 technisch erfüllt.
 - Punkt 5 benötigt den manuellen Eintrag von PS.
 - Punkt 6 benötigt Review und Freigabe durch ein Gruppenmitglied.
