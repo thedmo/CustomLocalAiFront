@@ -19,6 +19,15 @@ public sealed class Unterhaltung
 
     public IReadOnlyList<Nachricht> Nachrichten => _nachrichten;
 
+    /// <summary>Übernimmt den gespeicherten Titel unabhängig von der Nachrichtenreihenfolge.</summary>
+    public static Unterhaltung Wiederherstellen(
+        Guid id, string titel, DateTimeOffset erstelltAm, IEnumerable<Nachricht> nachrichten)
+    {
+        Unterhaltung unterhaltung = new(id, titel, erstelltAm);
+        unterhaltung._nachrichten.AddRange(nachrichten);
+        return unterhaltung;
+    }
+
     public void FuegeNachrichtHinzu(Nachricht nachricht)
     {
         ArgumentNullException.ThrowIfNull(nachricht);

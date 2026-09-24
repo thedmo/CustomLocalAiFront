@@ -501,6 +501,7 @@ erDiagram
 | Antwort      | Text           | TEXT, darf leer sein | wächst mit den Teilen; bei Abbruch bleibt der Teil                                      |
 | Antwort      | Zustand        | INTEGER              | Enum AntwortZustand: 0 Angefordert, 1 Läuft, 2 Fertig, 3 Abgebrochen, 4 Gestört (4.7.6) |
 | Antwort      | Grund          | TEXT, null           | nur bei Gestört: einer der vier Störfälle mit Text                                      |
+| Antwort      | Fall           | INTEGER, null        | vorhandener Core-Störfall separat vom bereinigten Grund; bei Neustart null              |
 | Antwort      | DauerMs        | INTEGER, null        | Gesamtdauer, für die Messung (11.4)                                                     |
 | Antwort      | ErstelltAm     | TEXT (ISO 8601)      | Beginn der Anfrage                                                                      |
 
@@ -509,6 +510,10 @@ Tabelle : Tabellen und Felder der SQLite-Datenbank
 Nicht in der Chatdatenbank: der technische Protokolleintrag (eigene Datei ohne Chattext) und die Backend-Konfiguration einschliesslich Modellzuordnung. Eine weitere Verwaltungsdatenbank wird nicht benötigt. Beim Neustart wird jede Antwort im Zustand Angefordert oder Läuft auf Gestört mit Grund «Neustart» gesetzt, damit kein Zustand ohne laufende Anfrage existiert. Die Zeit bis zum ersten Textteil wird im technischen Protokoll festgehalten; dafür ist keine weitere Chattabelle erforderlich.
 
 ## Kennung, Löschung, Neustart
+
+Präzisierung AP09/F04, technisch freigegeben durch PS am 23.09.2026: `Antwort.ErstelltAm` wird aus der gemeinsam angelegten `Nachricht.Zeit` übernommen. `Fall` bildet den bereits vorhandenen Core-Wert verlustfrei ab. Zeitpunkte werden in UTC als ISO-8601-TEXT gespeichert und für die Reihenfolge nach Materialisierung verglichen. Pro Store-Operation ein eigener Context, eine Transaktion pro Speichern. Jeder empfangene Teil wird vor der Anzeige gespeichert; Teilspeicherung und Abschluss sind je aktiver Anfrage über dieselbe asynchrone Sperre geordnet. Wiederherstellung läuft nur beim Prozessstart vor Benutzeranfragen, nicht beim Öffnen einer Unterhaltung oder Circuit-Start.
+
+Die Chat-Seite legt beim Seitenstart eine neue leere Unterhaltung an und lädt zusätzlich die gespeicherte Liste, neueste zuerst. Prerendering ist dort deaktiviert, um doppelte Neuanlage zu verhindern. Der Backend-Verlauf ist die Quelle für jedes Öffnen. Diese freigegebenen Präzisierungen sind durch die Gruppe in das Masterkonzept, Kapitel 7/9 und Änderungsnachweis 14.3, zu übernehmen.
 
 Kennung: jede Unterhaltung, Nachricht und Antwort erhält beim Anlegen eine GUID. Eine neue Unterhaltung darf null Nachrichten enthalten (F03) und erhält zunächst einen vorläufigen Titel; nach der ersten Nachricht wird deren Anfang als Titel verwendet. Der Titel kann geändert werden. Löschung: F05 entfernt die Unterhaltung mit allen Nachrichten und Antworten (Kaskade); der technische Protokolleintrag bleibt, weil er keinen Chattext enthält. Neustart: die SQLite-Datei bleibt im Volume, die Liste wird beim Start geladen; eine Antwort, die beim Neustart noch lief, wird als Gestört mit Grund Neustart gespeichert. Öffnen, Löschen und Wiederherstellen der Unterhaltungen erfolgen ausschliesslich über ChatService und Store und benötigen keinen erreichbaren Modellserver.
 

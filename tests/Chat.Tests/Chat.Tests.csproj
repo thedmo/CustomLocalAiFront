@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Chat.Core/Chat.Core.csproj" />
+    <ProjectReference Include="../../src/Chat.Store.Sqlite/Chat.Store.Sqlite.csproj" />
     <ProjectReference Include="../../src/Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj" />
     <ProjectReference Include="../../src/LocalAiFront/LocalAiFront.csproj" />
   </ItemGroup>

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Chat.Core/Chat.Core.csproj" />
+    <Project Path="src/Chat.Store.Sqlite/Chat.Store.Sqlite.csproj" />
     <Project Path="src/Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj" />
     <Project Path="src/LocalAiFront/LocalAiFront.csproj" />
   </Folder>

@@ -55,13 +55,14 @@ Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
   src/
     Chat.Core/                 IChatService, ChatService, Modelle, IModelServerClient, IStore, Arbeitsspeicher-Store, Konfiguration, Störfall
     Chat.Adapter.ModelRunner/  einziger Ort, der die API des Docker Model Runner kennt
+    Chat.Store.Sqlite/         EF Core, SQLite-Store, Migration und Neustart-Wiederherstellung
   tests/
     Chat.Tests/                xUnit und bUnit: ChatService, Adapter und Chat-Seite mit Fakes
-  web_app/LocalAiFront/        Blazor-Chat-Seite; über IChatService mit dem Backend verbunden
+  src/LocalAiFront/            Blazor-Chat-Seite; über IChatService mit dem Backend verbunden
   data/                        SQLite-Datei und Protokoll zur Laufzeit, nie im Repository
 ```
 
-Abhängigkeiten zeigen nur nach unten: Die Blazor-Komponenten kennen ausschliesslich `Chat.Core`. Der Composition Root in `Program.cs` verdrahtet `ChatService`, den Model-Runner-Adapter und bis AP09 den Arbeitsspeicher-Store per Dependency Injection. `Chat.Store.Sqlite` entsteht erst mit AP09.
+Abhängigkeiten zeigen nur nach unten: Die Blazor-Komponenten kennen ausschliesslich `Chat.Core`. Der Composition Root in `Program.cs` verdrahtet `ChatService`, Model-Runner-Adapter und `SqliteStore`. Jede Store-Operation verwendet einen eigenen kurzlebigen DbContext.
 
 ## Start
 
@@ -73,12 +74,18 @@ Voraussetzungen: .NET 10 SDK und Docker Desktop mit aktiviertem Docker Model Run
 python install_environment.py          # einmalig: appsettings.Development.json anlegen, Modell laden
 ```
 
-Danach in VS Code **F5** drücken (nutzt das `https`-Profil aus `web_app/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`) oder:
+Danach in VS Code **F5** drücken (nutzt das `https`-Profil aus `src/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`) oder:
 
 ```
-cd web_app/LocalAiFront
+cd src/LocalAiFront
 dotnet run
 ```
+
+`Chat:SpeicherortDb` muss einen beschreibbaren Dateipfad enthalten. Für den lokalen Start kann in PowerShell vor `dotnet run` beispielsweise `$env:Chat__SpeicherortDb = './data/chat.db'` gesetzt werden. Relative Pfade beziehen sich auf das Arbeitsverzeichnis der Anwendung. Docker Compose übergibt ausdrücklich `Chat__SpeicherortDb=/app/data/chat.db`; das bestehende Verzeichnis-Mount bleibt erhalten. `appsettings.example.json` ist nur eine Vorlage und wird nicht automatisch geladen. Eine fehlende oder unbrauchbare Pfadangabe führt zu einem Startfehler.
+
+Beim ersten Start wird das Datenbankverzeichnis angelegt und die mitgelieferte Migration angewendet. Es ist kein separater Datenbankserver und kein manuelles `database update` nötig. Vor Annahme von Benutzeranfragen werden gespeicherte Antworten in Angefordert oder Laeuft auf Gestoert mit Grund «Neustart» gesetzt; vorhandener Text bleibt erhalten. Empfangene Antwortteile werden bereits während der Ausgabe gespeichert.
+
+Jeder neue Seitenstart öffnet eine neue leere Unterhaltung und zeigt zusätzlich die gespeicherten Unterhaltungen mit Titel und Datum, neueste zuerst. Auswahl lädt den gespeicherten Verlauf; Auflisten und Öffnen benötigen keinen erreichbaren Modellserver. Prerendering ist für die Chat-Seite deaktiviert, damit der Seitenstart keine doppelte Unterhaltung erzeugt.
 
 ### Produktion / gesamter Stack (Docker)
 

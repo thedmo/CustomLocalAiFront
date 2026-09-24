@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Chat.Core/Chat.Core.csproj" />
+    <ProjectReference Include="../Chat.Store.Sqlite/Chat.Store.Sqlite.csproj" />
     <ProjectReference Include="../Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj" />
   </ItemGroup>
 

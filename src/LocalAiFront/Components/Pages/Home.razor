@@ -1,5 +1,6 @@
 ﻿@page "/"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Chat.Core.Modelle
 @implements IAsyncDisposable
 @inject IChatService ChatService
 @inject IJSRuntime JS
@@ -11,36 +12,38 @@
 <div class="chat-shell">
     <div class="chat-main">
         <aside class="unterhaltungs-liste" aria-label="Unterhaltungen">
-            @foreach (ChatUnterhaltung unterhaltung in _unterhaltungen)
+            @foreach (UnterhaltungInfo unterhaltung in _unterhaltungen)
             {
                 <button type="button"
                         class="unterhaltungs-eintrag btn @(unterhaltung.Id == _unterhaltungId ? "btn-primary" : "btn-outline-primary")"
                         aria-pressed="@((unterhaltung.Id == _unterhaltungId).ToString().ToLowerInvariant())"
-                        @onclick="() => WechsleUnterhaltung(unterhaltung.Id)">
+                        data-unterhaltung-id="@unterhaltung.Id" disabled="@(_sendet || _laedt)"
+                        @onclick="() => LadeUnterhaltungAsync(unterhaltung.Id)">
                     @unterhaltung.Titel
+                    <time class="d-block" datetime="@unterhaltung.ErstelltAm.ToString("O")">@unterhaltung.ErstelltAm.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
                 </button>
             }
 
-            <button id="neue-unterhaltung" type="button" class="btn btn-primary" @onclick="NeueUnterhaltungAsync">
+            <button id="neue-unterhaltung" type="button" class="btn btn-primary" disabled="@(_sendet || _laedt)" @onclick="NeueUnterhaltungAsync">
                 Neue Unterhaltung
             </button>
         </aside>
 
         <div class="chat-panel">
             <section id="chat-verlauf" class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite" @ref="_chatVerlaufRef">
-                @if (AktiveEintraege.Count == 0)
+                @if (_eintraege.Count == 0)
                 {
                     <p class="text-secondary">Stelle deine erste Frage.</p>
                 }
 
-                @foreach (ChatEintrag eintrag in AktiveEintraege)
+                @foreach (ChatEintrag eintrag in _eintraege)
                 {
                     <article class="chat-nachricht @(eintrag.IstBenutzer ? "chat-benutzer" : "chat-assistent")">
                         <strong>@(eintrag.IstBenutzer ? "Du" : "Assistent")</strong>
                         <p>@eintrag.Text</p>
-                        @if (eintrag.IstAbgebrochen)
+                        @if (eintrag.Zustandsmeldung is not null)
                         {
-                            <small>Antwort abgebrochen</small>
+                            <small>@eintrag.Zustandsmeldung</small>
                         }
                     </article>
                 }
@@ -49,11 +52,11 @@
             <div class="chat-eingabe">
                 <label for="nachricht" class="form-label">Nachricht</label>
                 <textarea id="nachricht" class="form-control" rows="3" maxlength="4001" placeholder="Nachricht eingeben …"
-                          @bind="_eingabe" @bind:event="oninput" disabled="@_sendet"></textarea>
+                          @bind="_eingabe" @bind:event="oninput" disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty)"></textarea>
 
                 <div class="chat-aktionen">
                     <button id="senden" type="button" class="btn btn-primary" @onclick="SendeAsync"
-                            disabled="@(_sendet || string.IsNullOrWhiteSpace(_eingabe))">
+                            disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty || string.IsNullOrWhiteSpace(_eingabe))">
                         Senden
                     </button>
 
@@ -79,19 +82,18 @@
 
 @code {
     private readonly CancellationTokenSource _lebenszyklus = new();
-    private readonly List<ChatUnterhaltung> _unterhaltungen = [];
+    private IReadOnlyList<UnterhaltungInfo> _unterhaltungen = [];
+    private readonly List<ChatEintrag> _eintraege = [];
     private Guid _unterhaltungId;
     private Guid? _aktiveAntwortId;
     private string _eingabe = string.Empty;
     private string _status = "Bereit";
     private string? _fehler;
     private bool _sendet;
+    private bool _laedt;
     private bool _abbruchAngefordert;
     private ElementReference _chatVerlaufRef;
     private int _letzteNachrichtenAnzahl;
-
-    private List<ChatEintrag> AktiveEintraege =>
-      _unterhaltungen.First(u => u.Id == _unterhaltungId).Eintraege;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,7 +102,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        int nachrichtenAnzahl = AktiveEintraege.Count;
+        int nachrichtenAnzahl = _eintraege.Count;
         if (nachrichtenAnzahl != _letzteNachrichtenAnzahl || firstRender)
         {
             _letzteNachrichtenAnzahl = nachrichtenAnzahl;
@@ -108,38 +110,72 @@
         }
     }
 
-    private async Task NeueUnterhaltungAsync()
+    private Task NeueUnterhaltungAsync() => LadeUnterhaltungAsync(null);
+
+    private async Task LadeUnterhaltungAsync(Guid? id)
     {
-        if (_sendet)
+        if (_sendet || _laedt)
         {
             return;
         }
 
-        Guid id = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
-        _unterhaltungen.Add(new ChatUnterhaltung(id));
-        _unterhaltungId = id;
-        _eingabe = string.Empty;
+        _laedt = true;
         _fehler = null;
-        _status = "Bereit";
-        await InvokeAsync(StateHasChanged);
+        _status = "Unterhaltung wird geladen …";
+        try
+        {
+            Guid kennung = id ?? await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+            Unterhaltung u = await ChatService.OeffneUnterhaltungAsync(kennung, _lebenszyklus.Token);
+            _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
+            ZeigeUnterhaltung(u);
+            _status = "Bereit";
+        }
+        catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
+        {
+            // Die verlassene Seite benötigt kein Ladeergebnis mehr.
+        }
+        catch (KeyNotFoundException)
+        {
+            _fehler = "Die Unterhaltung ist nicht mehr vorhanden.";
+            _status = "Störung";
+        }
+        catch (Exception)
+        {
+            _fehler = "Die Unterhaltung konnte nicht geladen werden. Bitte erneut versuchen.";
+            _status = "Störung";
+        }
+        finally
+        {
+            _laedt = false;
+        }
     }
 
-    private void WechsleUnterhaltung(Guid id)
+    private void ZeigeUnterhaltung(Unterhaltung u)
     {
-        if (_sendet)
+        _eintraege.Clear();
+        foreach (Nachricht n in u.Nachrichten)
         {
-            return;
+            _eintraege.Add(new ChatEintrag(true, n.Text));
+            _eintraege.Add(new ChatEintrag(false, n.Antwort.Text)
+            {
+                Zustandsmeldung = n.Antwort.Zustand switch
+                {
+                    AntwortZustand.Abgebrochen => "Antwort abgebrochen",
+                    AntwortZustand.Gestoert => $"Antwort gestört: {n.Antwort.Grund}",
+                    AntwortZustand.Fertig => "Antwort fertig",
+                    AntwortZustand.Laeuft => "Antwort läuft",
+                    _ => "Antwort angefordert"
+                }
+            });
         }
-
-        _unterhaltungId = id;
+        _unterhaltungId = u.Id;
         _eingabe = string.Empty;
-        _fehler = null;
-        _status = "Bereit";
+        _letzteNachrichtenAnzahl = -1;
     }
 
     private async Task SendeAsync()
     {
-        if (_sendet || string.IsNullOrWhiteSpace(_eingabe))
+        if (_sendet || _laedt || _unterhaltungId == Guid.Empty || string.IsNullOrWhiteSpace(_eingabe))
         {
             return;
         }
@@ -159,11 +195,9 @@
             _eingabe = string.Empty;
             _aktiveAntwortId = lauf.AntwortId;
 
-            ChatUnterhaltung unterhaltung = _unterhaltungen.First(u => u.Id == _unterhaltungId);
-            unterhaltung.Eintraege.Add(new ChatEintrag(true, text));
+            _eintraege.Add(new ChatEintrag(true, text));
             ChatEintrag antwort = new(false, string.Empty);
-            unterhaltung.Eintraege.Add(antwort);
-            unterhaltung.Titel = text.Length > 20 ? text[..20] : text;
+            _eintraege.Add(antwort);
 
             await foreach (string teil in lauf.Teile.WithCancellation(_lebenszyklus.Token))
             {
@@ -171,7 +205,7 @@
                 await InvokeAsync(StateHasChanged);
             }
 
-            antwort.IstAbgebrochen = _abbruchAngefordert;
+            antwort.Zustandsmeldung = _abbruchAngefordert ? "Antwort abgebrochen" : "Antwort fertig";
             _status = _abbruchAngefordert ? "Antwort abgebrochen" : "Bereit";
         }
         catch (StoerfallException ausnahme)
@@ -185,6 +219,7 @@
         }
         finally
         {
+            await AktualisiereListeAsync();
             _aktiveAntwortId = null;
             _sendet = false;
         }
@@ -209,13 +244,20 @@
         return ValueTask.CompletedTask;
     }
 
-    private sealed class ChatUnterhaltung(Guid id)
+    private async Task AktualisiereListeAsync()
     {
-        public Guid Id { get; } = id;
-
-        public string Titel { get; set; } = "Neue Unterhaltung";
-
-        public List<ChatEintrag> Eintraege { get; } = [];
+        try
+        {
+            _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
+        }
+        catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
+        {
+            // Die verlassene Seite benötigt keine aktualisierte Liste mehr.
+        }
+        catch (Exception)
+        {
+            _fehler = "Die Unterhaltungsliste konnte nicht aktualisiert werden.";
+        }
     }
 
     private sealed class ChatEintrag(bool istBenutzer, string text)
@@ -224,6 +266,6 @@
 
         public string Text { get; set; } = text;
 
-        public bool IstAbgebrochen { get; set; }
+        public string? Zustandsmeldung { get; set; }
     }
 }

@@ -1,11 +1,11 @@
 # Karte AP09a: SQLite-Grundlage speichert und lädt Unterhaltungen
 
-**Status:** Ausgearbeiteter Vorschlag; Blockiert bis Paket-, Design- und Werkzeugfreigabe sowie Board-Bestätigung. Teilkarte von AP09; keine Umsetzung erfolgt.
+**Status:** Implementiert und automatisiert geprüft; bereit für menschliches Review. Visuelle Abnahme offen, nicht als Erledigt freigegeben.
 
 | Feld | Inhalt |
 |---|---|
-| Verantwortlich | Von der Gruppe zu benennen |
-| Halbtag | Ein Halbtag vor AP09b, Termin zu bestätigen |
+| Verantwortlich | PS |
+| Halbtag | Mi PM |
 | Referenz | AP09; F03/F04, NF06, Z05, M08 |
 | Quellen | `agent/Design.md` Datenhaltung; `agent/Schnittstellen.md`; `agent/Drittkomponenten.md` |
 | Testfälle | T01, T05; Z05; Zustandsabbildung aus T12 |
@@ -54,11 +54,11 @@ Store-eigene Datensätze bilden auf Core-Modelle ab. Pro Operation ein eigener k
 
 Zeitpunkte bleiben gemäss Design ISO-8601-TEXT. UTC-Normalisierung und zeitliche Sortierung sind ausdrücklich zu testen; kein ungeprüftes SQL-OrderBy auf `DateTimeOffset`. Für den kleinen lokalen Datenbestand ist Sortierung nach Materialisierung zulässig. Siehe [Microsoft: SQLite-Einschränkungen](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations).
 
-**Schema-Präzisierungen zur Gruppenfreigabe:** Das Design nennt `Antwort.ErstelltAm`, das Core-Modell bisher nicht: vorgeschlagen ist die Übernahme von `Nachricht.Zeit`, da Nachricht und Antwort gemeinsam angelegt werden. Das Core-Modell besitzt hingegen `Antwort.Fall` zusätzlich zu `Grund`: vorgeschlagen ist eine nullable INTEGER-Spalte `Fall`, damit diese Information verlustfrei gespeichert wird. Vor Umsetzung bestätigen und im Masterkonzept nachführen; keine eigenständige Schemafreigabe durch das Werkzeug.
+**Durch PS freigegebene Schema-Präzisierungen:** `Antwort.ErstelltAm` übernimmt `Nachricht.Zeit`, da Nachricht und Antwort gemeinsam angelegt werden. `Antwort.Fall` wird zusätzlich zu `Grund` als nullable INTEGER gespeichert. `agent/Design.md` ist nachgeführt; die Übernahme ins Masterkonzept bleibt bei der Gruppe.
 
-Paketvorschlag: `Microsoft.EntityFrameworkCore.Sqlite`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets, nur Entwicklung) und lokales `dotnet-ef`, jeweils **10.0.12**, MIT. Quellen und Freigabestatus in `agent/Drittkomponenten.md`; nichts installiert oder bereits genehmigt.
+Verwendete, durch PS freigegebene Pakete: `Microsoft.EntityFrameworkCore.Sqlite`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets, nur Entwicklung) und lokales `dotnet-ef`, jeweils **10.0.12**, MIT. Quellen und transitive SQLite-Komponenten stehen in `agent/Drittkomponenten.md`.
 
-Zusätzliche Befehle für Migrationserzeugung: `dotnet tool restore` und `dotnet ef migrations add Initial --project src/Chat.Store.Sqlite --output-dir Migrationen`. Vor Ausführung in AGENTS.md freigeben. Projekt-/Paketverweise als Dateien editieren; `dotnet add package` ist nicht nötig. Keine CLI-Migration gegen produktive Daten.
+Zusätzliche, in AGENTS.md eingetragene Befehle: `dotnet tool restore` und `dotnet ef migrations add Initial --project src/Chat.Store.Sqlite --output-dir Migrationen`. Projekt-/Paketverweise wurden als Dateien editiert. Keine CLI-Migration gegen produktive Daten.
 
 ## 6. Tests
 
@@ -70,12 +70,72 @@ Nach jedem Codeschritt `dotnet build`, `dotnet test`; abschliessend `dotnet form
 
 ## 7. Grösse
 
-Schätzung ein Halbtag: Schema/Migration, Store/Mapping, Tests. Vor READY durch Karteninhaber bestätigen; bei höherem Aufwand weiter teilen, keine Abnahme weglassen.
+Geplant und durch PS bestätigt: Mi PM, ein Halbtag für Schema/Migration, Store/Mapping und Tests. Effektiven Aufwand trägt PS nach.
 
-## 8. Board
+## 8. Board und Freigabe
 
-Erste Teilkarte von AP09. Gruppe benennt Verantwortlichen, Termin und Status In Arbeit; WIP höchstens zwei. READY erfordert diese Angaben sowie Paket-, Werkzeug- und Schemafreigabe. AP09b beginnt nach den grünen Prüfungen dieser Karte.
+PS hat AP09a/AP09b und F04 am 23.09.2026 technisch freigegeben und die Umsetzung beauftragt; Verantwortlicher PS, Halbtag Mi PM. Die Karten wurden nacheinander umgesetzt. F04 startet nach ausdrücklichem Benutzerentscheid mit einer neuen aktiven leeren Unterhaltung und der gespeicherten Liste. Am 24.09. wurde die Wiederherstellung des ausgefallenen Hauptcontainers zusätzlich beauftragt. Ein externer Board-Eintrag wurde nicht durch das Werkzeug geändert; Review und Erledigt entscheidet die Gruppe.
 
 ## Ergebnis
 
-Vorbereitung vom 23.09.2026: Karte anhand von Code, Design und Schnittstellen erstellt. Datenmodell-Unterschiede und fehlende Listenoperation sichtbar gemacht. Keine Implementierung, Installation, Migration oder Datenänderung; Build, Tests und Formatierung nicht ausgeführt. Dokumentationsprüfung und Selbstprüfung siehe F04-Karte. Menschliches Review und Implementierungsnachweise offen.
+Karte: AP09a SQLite-Grundlage speichert und lädt Unterhaltungen
+
+Umgesetzt:
+- EF-Core-SQLite-Projekt mit explizitem Mapping, Initialmigration, Listenoperation, transaktionalem Speichern und verlustfreier Wiederherstellung.
+- Echte temporäre SQLite-Tests für Wiederöffnung, Zustände, Reihenfolge, leere Daten, Aktualisierung und Rollback nach ausgeführtem SQL.
+
+Geänderte Dateien:
+- `src/Chat.Store.Sqlite/Chat.Store.Sqlite.csproj`, `ChatDbContext.cs`, `ChatDbContextFactory.cs`, `SqliteStore.cs`, die drei Datensatzklassen und drei Dateien in `Migrationen/`.
+- `src/Chat.Core/IStore.cs`, `ArbeitsspeicherStore.cs`, `Modelle/UnterhaltungInfo.cs`, `Modelle/Unterhaltung.cs`, `Modelle/Antwort.cs`.
+- `CustomLocalAiFront.slnx`, `.config/dotnet-tools.json`, `tests/Chat.Tests/Chat.Tests.csproj`, `SpeicherStore.cs`, `SqliteTestdatenbank.cs`, `SqliteStoreTests.cs`.
+- `AGENTS.md` (freigegebene EF-Befehle), `agent/Design.md`, `agent/Schnittstellen.md`, `agent/Drittkomponenten.md`, Karte und Protokolle.
+
+Nicht angefasst (bewusst): Adapter, global.json, produktive Datenbanken; Web-Anbindung erfolgt unter AP09b.
+
+Prüfungen (Abschlussstand 24.09.2026):
+- `dotnet build -m:1 -p:UseSharedCompilation=false`: OK, 0 Warnungen, 0 Fehler.
+- `dotnet test --no-build --verbosity minimal`: 46 gesamt, 45 bestanden, 0 fehlgeschlagen, 1 übersprungen. Der bereits vorhandene explizite Test `ModelRunnerClient_EchterServer_LiefertTeile` wurde nicht angefordert; kein Test abgeschwächt oder neu übersprungen.
+- `dotnet format --verify-no-changes --no-restore`: OK, keine Änderung. Zeilenenden der im Umfang genannten ChatSeiteTests/ChatServiceTests und Format der generierten Initialmigration zuvor angeglichen; Assertions unverändert.
+- Isolierter Container aus dem Projekt-Dockerfile: gebaut, gestartet, HTTP 200. Fünf synthetische Unterhaltungen vor Neustart gespeichert, danach über den Store vollständig verglichen: leere Unterhaltung, Texte, Endzustände und Neustartgrund korrekt. Testcontainer anschliessend entfernt, Hauptdienst nicht beeinflusst.
+- Hauptdienst nach Compose-Korrektur neu gebaut: `http://localhost:80/` liefert HTTP 200 und Blazor-Startskript.
+
+### Selbstprüfung nach agent/Review_Checkliste.md
+
+| Punkt | Ja/Nein und Begründung |
+|---|---|
+| Fachlichkeit: Karte und Use Case | Ja, SQLite-Grundlage und F04 entlang der freigegebenen Karten umgesetzt. |
+| Fachlichkeit: alle Akzeptanzkriterien | Nein, funktionale Nachweise bestehen; visuelle Abnahme und menschliches Review sind noch offen. |
+| Fachlichkeit: keine eigenmächtige Erweiterung | Ja, technische Freigabe vom 23.09. und Startfehler-Korrekturauftrag vom 24.09. berücksichtigt. |
+| Codequalität: Namen | Ja, Fachbegriffe und Dateinamen abgeglichen; Migration durch EF generiert. |
+| Codequalität: Schichten | Ja, Razor verwendet IChatService; nur Program.cs verdrahtet den Store. |
+| Codequalität: Verständlichkeit | Ja, kurze Store-Operationen und explizites Mapping; vorhandene längere Streamingmethoden nicht fachfremd umgebaut. |
+| Codequalität: Format und Komplexität | Ja, globale dotnet-format-Prüfung ohne Änderungen, kein zweiter produktiver Store. |
+| Codequalität: Kommentare | Ja, Kommentare erläutern Wiederherstellung, Sperre und Lebenszyklus; kein auskommentierter Code. |
+| Fehlerbehandlung: vier Modell-Störfälle | Ja, vorhandene Behandlung erhalten und Regression grün; Laden benötigt keinen Modellaufruf. |
+| Fehlerbehandlung: Abbruch | Ja, Teiltext und Endzustand auch bei verzögerter Speicherung geprüft; Ladeschäden werden in der UI gemeldet. |
+| Fehlerbehandlung: Eingabegrenzen | Ja, bestehende Tests für leere/zu lange Eingabe weiterhin grün. |
+| Fehlerbehandlung: Zustandsübergänge | Ja, vorhandene Übergangstests grün; Neustart ändert nur Angefordert/Laeuft. |
+| Auswirkungen: Umfang | Ja, Diff gegen Karten geprüft; Compose-Ergänzung in AP09b dokumentiert. |
+| Auswirkungen: Schnittstellen | Ja, freigegebene Listen-/Öffnungsoperationen konkretisiert und dokumentiert. |
+| Auswirkungen: Konfiguration/Start | Ja, README und expliziter Compose-Speicherpfad korrigiert; kein stiller In-Memory-Fallback. |
+| Sicherheit: keine vertraulichen Daten | Ja, nur synthetische Testdaten; keine persönlichen Pfade oder Nutzdaten in Änderungen übernommen. |
+| Sicherheit: Netzwerk | Ja, Anwendung erhält keine externen Dienste; Modellzugriff bleibt im Adapter. |
+| Sicherheit: Bibliotheken | Ja, EF-Pakete und Tool freigegeben; Versionen/Lizenzen und transitive SQLite-Komponenten dokumentiert. |
+| Sicherheit: Prompt-Trennung | Ja, unverändert. |
+| Oberfläche: Semantik/Tastatur | Ja, vorhandene Buttons und Labels erhalten, aktive Auswahl über aria-pressed, Datum als time. |
+| Oberfläche: Gestaltung | Ja, vorhandene CSS-/Bootstrap-Klassen weiterverwendet; keine neuen Farb- oder Schriftwerte. |
+| Oberfläche: beide Fensterbreiten | Nein, Browser-Schnittstelle meldet keine verbundenen Tabs; visuelle Prüfung offen. |
+| Tests: dotnet test grün | Ja, 45 bestanden, 0 fehlgeschlagen; 1 schon vorher expliziter Modellserver-Test nicht ausgeführt. |
+| Tests: neue Logik | Ja, 23 neue Tests gegenüber dem Ausgangsstand, einschliesslich echter SQLite-Dateien und bUnit. |
+| Tests: manuelle Nachweise | Nein, technischer Start-/Containerneustartnachweis protokolliert; visuelle T05/N03-Abnahme durch Mensch offen. |
+| Tests: Einschränkungen dokumentiert | Ja, unten und im Test-/Reviewprotokoll; Masterkonzept durch Gruppe nachzuführen. |
+| Nachvollziehbarkeit: KI-Einsatz | Ja, Eintrag zu AP09a/AP09b/F04 ergänzt. |
+| Nachvollziehbarkeit: Commit | Nein, kein Commit beauftragt; Vorschlag angegeben, Review durch Gruppe offen. |
+
+Offen, Risiken, Befunde ausserhalb der Karte:
+- Menschliches Pflicht-Review von Schema/DI/Synchronisation, visuelle Desktop-/Mobilprüfung und vollständige manuelle T05-Abnahme stehen aus. Browserwerkzeug meldet keine verbundenen Browser; daraus wird keine erfolgreiche Sichtprüfung abgeleitet.
+- Masterkonzept Kapitel 7/9 und 14.3 durch die Gruppe mit den dokumentierten Präzisierungen abgleichen.
+- Zeitaufwand der dauerhaften Speicherung jedes Antwortteils auf dem Referenzgerät mit echtem Modell messen; automatisierte Funktionsprüfung ersetzt diese Messung nicht.
+- Dauer effektiv durch PS nachtragen; kein Commit erstellt und keine menschliche Freigabe vorweggenommen.
+
+Vorschlag Commit-Nachricht: AP09a: SQLite-Persistenz und gespeicherte Unterhaltungen bereitstellen / KI: Codex, geprueft von XX

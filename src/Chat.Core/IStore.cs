@@ -4,6 +4,9 @@ namespace Chat.Core;
 
 public interface IStore
 {
+    /// <summary>Liefert die gespeicherten Unterhaltungen, neueste zuerst.</summary>
+    Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct);
+
     /// <summary>Speichert eine Unterhaltung als fachliche Transaktion.</summary>
     Task SpeichernAsync(Unterhaltung unterhaltung, CancellationToken ct);
 

@@ -21,6 +21,12 @@ public sealed class ChatService : IChatService
         _konfiguration = konfiguration;
     }
 
+    public Task<IReadOnlyList<UnterhaltungInfo>> ListeUnterhaltungenAsync(CancellationToken ct) =>
+        _store.ListeAsync(ct);
+
+    public Task<Unterhaltung> OeffneUnterhaltungAsync(Guid id, CancellationToken ct) =>
+        _store.LadenAsync(id, ct);
+
     public async Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
     {
         Unterhaltung unterhaltung = new(
@@ -105,7 +111,7 @@ public sealed class ChatService : IChatService
                 break;
             }
 
-            if (!anfrage.VersucheTeilHinzuzufuegen(schritt.Teil!))
+            if (!await SpeichereTeilAsync(anfrage, schritt.Teil!))
             {
                 yield break;
             }
@@ -216,14 +222,41 @@ public sealed class ChatService : IChatService
         Stoerfall? fall,
         string? grund)
     {
-        if (!anfrage.VersucheAbzuschliessen(zustand, fall, grund))
+        await anfrage.Speichersperre.WaitAsync();
+        try
         {
-            return;
-        }
+            if (!anfrage.VersucheAbzuschliessen(zustand, fall, grund))
+            {
+                return;
+            }
 
-        await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
-        _aktiveAnfragen.TryRemove(anfrage.Antwort.Id, out _);
-        anfrage.Dispose();
+            await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
+            _aktiveAnfragen.TryRemove(anfrage.Antwort.Id, out _);
+            anfrage.Dispose();
+        }
+        finally
+        {
+            anfrage.Speichersperre.Release();
+        }
+    }
+
+    private async Task<bool> SpeichereTeilAsync(AktiveAnfrage anfrage, string teil)
+    {
+        await anfrage.Speichersperre.WaitAsync();
+        try
+        {
+            if (!anfrage.VersucheTeilHinzuzufuegen(teil))
+            {
+                return false;
+            }
+
+            await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
+            return true;
+        }
+        finally
+        {
+            anfrage.Speichersperre.Release();
+        }
     }
 
     private void PruefeEingabe(string text)

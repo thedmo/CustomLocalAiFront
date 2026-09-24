@@ -1,7 +1,15 @@
+using Chat.Core.Modelle;
+
 namespace Chat.Core;
 
 public interface IChatService
 {
+    /// <summary>Liefert Kennung, Titel und Datum, neueste Unterhaltung zuerst.</summary>
+    Task<IReadOnlyList<UnterhaltungInfo>> ListeUnterhaltungenAsync(CancellationToken ct);
+
+    /// <summary>Lädt den gespeicherten Verlauf unabhängig vom Modellserver.</summary>
+    Task<Unterhaltung> OeffneUnterhaltungAsync(Guid id, CancellationToken ct);
+
     /// <summary>Erstellt eine neue leere Unterhaltung und liefert ihre Kennung.</summary>
     Task<Guid> NeueUnterhaltungAsync(CancellationToken ct);
 

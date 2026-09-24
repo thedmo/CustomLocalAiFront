@@ -7,7 +7,9 @@ Stand = Commit-Kürzel oder Branch und Uhrzeit. Art = Test (manuell) oder Review
 | Datum | Person | Stand (Commit) | Art | Prüfumfang (Karte, Dateien, Testfall) | Erwartet | Tatsächlich | Mängel | Korrekturen | Nachprüfung |
 |---|---|---|---|---|---|---|---|---|---|
 | 22.09.2026 | [RL] | [Gerüst, Commit] | Review | AP06: AGENTS.md, StylingGuide.md, DoR_DoD.md gelesen und beschlossen | Regeln vollständig nach S. 18 f., von allen verstanden | [ ] | [ ] | [ ] | [ ] |
-| | | | | | | | | | |
+| 24.09.2026 | Codex, Auftrag PS | Arbeitsverzeichnis AP09/F04, Abschlusslauf 24.09. | Technischer Integrationstest per CLI/HTTP | AP09b: Hauptcontainer nach gemeldetem Startfehler | Anwendung startet, localhost:80 erreichbar | Docker-Build erfolgreich, HTTP 200, Blazor-Startskript vorhanden | SpeicherortDb wurde durch Compose nicht übergeben | Explizites Chat__SpeicherortDb=/app/data/chat.db, vorhandener Mount erhalten | Erfolgreich; keine manuelle Browserabnahme daraus abgeleitet |
+| 24.09.2026 | Codex, Auftrag PS | Arbeitsverzeichnis AP09/F04, Abschlusslauf 24.09. | Technischer Integrationstest per CLI | AP09b/F04, Z05: isolierter Container mit temporärer Testdatei | 5 synthetische Unterhaltungen nach Neustart erhalten; offene Antworten Gestoert/Neustart | Alle 5 über Store geladen und verglichen; leere Unterhaltung, Text und Endzustände korrekt; HTTP 200 ohne erreichbaren Modellserver | Keine im Prüfumfang | Nicht erforderlich; Testcontainer danach entfernt | Bestanden; Hauptdienst unverändert weiterlaufend |
+| 24.09.2026 | Gruppenmitglied offen | AP09/F04 nach technischem Abschluss | Ausstehender manueller Test/Review | T05/N03, beide Fensterbreiten, Tastatur, echtes Streaming; Schema/DI/Synchronisation | Gespeicherte Verläufe korrekt bedienbar, keine Regression, verständlicher Code | Nicht durchgeführt; Browserwerkzeug meldet keine verbundenen Browser/Tabs | Visuelle Abnahme und unabhängiges Review fehlen | Durch Gruppenmitglied ausführen | Offen |
 
 ## Automatisierte Tests
 

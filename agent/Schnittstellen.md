@@ -18,6 +18,8 @@ Referenz für Entwickler und KI-Werkzeuge. Quelle ist das Konzept, Kapitel 7.3 u
 
 Fehler kommen als `StoerfallException` mit einem der vier Fälle: `ModellserverNichtErreichbar`, `ModellUnbekannt`, `KonfigurationUngueltig`, `Zeitueberschreitung`. Die Seite zeigt die Meldung mit Grund (M09), die Eingabe bleibt frei. `StatusAsync` gehört zum C#-Vertrag. Ein zusätzlicher HTTP-Endpunkt `GET /status` ist nicht Teil von AP07.
 
+Implementierungsstand F04, freigegeben durch PS am 23.09.2026: `ListeUnterhaltungenAsync(CancellationToken ct)` liefert `Task<IReadOnlyList<UnterhaltungInfo>>`; `UnterhaltungInfo` enthält `Guid Id`, `string Titel`, `DateTimeOffset ErstelltAm`. `OeffneUnterhaltungAsync(Guid id, CancellationToken ct)` liefert `Task<Unterhaltung>`. Beide verwenden ausschliesslich den Store; unbekannte Kennungen ergeben `KeyNotFoundException`. Die Liste ist nach ErstelltAm absteigend, danach Id sortiert; Nachrichten nach Zeit aufsteigend, danach Id.
+
 ## Backend zu Modellserver: `IModelServerClient` (Chat.Core), Umsetzung `ModelRunnerClient`
 
 | Methode                                            | Zweck                   | Eingabe                                                   | Ausgabe                    |
@@ -35,6 +37,8 @@ Der Adapter sendet `POST chat/completions` mit Modellname, Systemanweisung und V
 | `ListeAsync(ct)`                   | Kennung, Titel, Datum aller Unterhaltungen                                                        |
 | `LoeschenAsync(id, ct)`            | Unterhaltung mit Nachrichten und Antworten entfernen (Kaskade), Protokoll bleibt                  |
 | `ProtokollAsync(eintrag, ct)`      | technischer Eintrag ohne Chattext (Konzept 9.3)                                                   |
+
+Implementierungsstand AP09: `IStore.ListeAsync(CancellationToken ct)` liefert `Task<IReadOnlyList<UnterhaltungInfo>>`. `SpeichernAsync` ist transaktional, `LadenAsync` rekonstruiert gespeicherte Zustände. Lösch- und Protokolloperationen sind weiterhin Zielverträge für F05/AP12 und noch nicht im C#-Interface enthalten. Startup-Migration und Neustart-Wiederherstellung gehören zur technischen Store-Einbindung und erweitern den fachlichen Vertrag nicht.
 
 ## Konfiguration (Abschnitt `Chat` in `appsettings.json`, Konzept 7.4)
 
