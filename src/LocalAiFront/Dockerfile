@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY src/Chat.Core/Chat.Core.csproj src/Chat.Core/
+COPY src/Chat.Store.Sqlite/Chat.Store.Sqlite.csproj src/Chat.Store.Sqlite/
 COPY src/Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj src/Chat.Adapter.ModelRunner/
 COPY src/LocalAiFront/LocalAiFront.csproj src/LocalAiFront/
 RUN dotnet restore src/LocalAiFront/LocalAiFront.csproj

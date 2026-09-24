@@ -8,7 +8,7 @@ Vorschlag als Gerüste; Rod führt die Tabelle in AP11 zu Ende und überträgt s
 
 | Nr. | Funktion, Ziel | Voraussetzung | Schritte | Erwartetes Ergebnis | Art | Nachweis für |
 |---|---|---|---|---|---|---|
-| T01 | F03 neue Unterhaltung | Anwendung läuft | Knopf Neue Unterhaltung | leere Unterhaltung mit Kennung, erscheint in der Liste | manuell, auto (ChatService) | M05 |
+| T01 | F03 neue Unterhaltung | Anwendung läuft | Seite laden oder Neue Unterhaltung; danach erste Nachricht senden | vor dem Senden nur lokaler Entwurf, kein Listen-/Datenbankeintrag; mit erster Nachricht genau eine gespeicherte Unterhaltung in der Liste | manuell, auto (Komponente und SQLite-Store) | M05 |
 | T02 | F01 Nachricht senden | Modellserver erreichbar | Text eingeben, Senden | erster Teil innerhalb des Zeitlimits, Antwort endet mit Zustand Fertig | manuell, auto (Fake-Adapter) | M05, M06 |
 | T03 | F01 Antwort schrittweise | wie T02 | lange Frage senden | Teile erscheinen nacheinander, nicht als Block | manuell | M06 |
 | T04 | F02 Abbrechen | Antwort angefordert oder läuft | Abbrechen vor dem ersten Teil und während der Ausgabe | Modellaufruf beziehungsweise Ausgabe stoppt, vorhandene Teilantwort bleibt markiert, Zustand Abgebrochen, Eingabe sofort frei | manuell, auto | M06 |
@@ -20,6 +20,17 @@ Vorschlag als Gerüste; Rod führt die Tabelle in AP11 zu Ende und überträgt s
 | T10 | 4.7 Erweiterung 2b zu lange Eingabe | Eingabegrenze 4000 | 4001 Zeichen senden | Hinweis mit Grenze, kein Aufruf | auto | M09 |
 | T11 | Zeitüberschreitung | Zeitlimit 5 Sekunden, Modell langsam | Nachricht senden | Zustand Gestört mit Grund Zeitüberschreitung, Eingabe frei | auto (Fake mit Verzögerung) | M09 |
 | T12 | Zustandsübergänge | Fake-Adapter | je dokumentierten Übergang ein Lauf | nur die sechs erlaubten Übergänge, kein anderer | auto | M06 |
+
+### Ergänzende Prüfungen T06 (F05)
+
+- Bestätigung abbrechen: Verlauf und Liste unverändert, kein Löschaufruf. Bestätigen: nur ausgewählte Unterhaltung mit Nachrichten und Antworten entfernt; eine vorhandene Unterhaltung wird aktiv, andernfalls bleibt die Liste leer. Keine automatische Ersatz-Unterhaltung.
+- SQLite-Datei erneut öffnen und Initialisierung ausführen: gelöschte Kennung fehlt, andere Verläufe samt Zuordnung und Endzuständen unverändert. Leere Unterhaltung und wiederholtes Löschen ebenfalls prüfen.
+- Während Laden, Senden und Löschen ist die Löschbedienung gesperrt. Aktive Antwort aus einer zweiten Service-Instanz verhindert Löschen bis zum gespeicherten Abschluss oder Abbruch.
+- Senden/Löschen gezielt überlappen lassen: Senden zuerst verhindert Löschen; Löschen zuerst verhindert Senden an die fehlende Kennung. Keine Wiederherstellung gelöschter Daten.
+- Speicherfehler und Cancellation erhalten Daten; erneuter Versuch möglich. Scheitert die Listenaktualisierung nach erfolgreichem Löschen, bleibt der alte Verlauf entfernt und die Seite bedienbar.
+- In zweiter Sitzung inzwischen gelöschte Unterhaltung: Senden zeigt einen Hinweis; Öffnen/Neuanlegen bleibt möglich.
+- Fünf gespeicherte Verläufe über die Komponente mit echtem temporärem SQLite-Store prüfen; einen löschen, nach Neuinitialisierung vier Originalverläufe erhalten. Die Seite legt keinen zusätzlichen leeren Verlauf an. Kein Modellaufruf erforderlich.
+- Automatisiert in `ChatServiceUnterhaltungenTests`, `ChatSeiteUnterhaltungenTests` und `SqliteStoreTests`; manueller T06/Z05-Nachweis auf dem Referenzgerät einschliesslich unveränderter technischer Protokolle bleibt erforderlich.
 
 ## Nichtfunktionale Testfälle (mindestens fünf)
 

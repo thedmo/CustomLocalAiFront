@@ -9,6 +9,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
+      - Chat__SpeicherortDb=/app/data/chat.db
       - Chat__Modellname=${MODEL_NAME:-hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M}
     volumes:
       - ./data:/app/data
