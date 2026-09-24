@@ -6,12 +6,12 @@ services:
     container_name: local-ai-gateway
     ports:
       - "80:80"
+    env_file:
+      - .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
       - TZ=Europe/Berlin
-      - Chat__SpeicherortDb=/app/data/chat.db
-      - Chat__Modellname=${MODEL_NAME:-hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M}
     volumes:
       - ./data:/app/data
     models:
@@ -21,5 +21,5 @@ services:
 
 models:
   llm:
-    model: ${MODEL_NAME:-hf.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q3_K_M}
+    model: ${MODEL_NAME}
     context_size: 4096

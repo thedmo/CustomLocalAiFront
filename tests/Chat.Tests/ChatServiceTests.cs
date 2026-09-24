@@ -160,6 +160,14 @@ public sealed partial class ChatServiceTests
     }
 
     [Fact]
+    public void Konfiguration_NormalisiertUmgebungswerte_EntferntAnfuehrungszeichen()
+    {
+        Assert.Equal("Du bist ein Assistent.", Konfiguration.NormalisiereText("\"Du bist ein Assistent.\""));
+        Assert.Equal("Du bist ein Assistent.", Konfiguration.NormalisiereText("'Du bist ein Assistent.'"));
+        Assert.Equal("Du bist ein Assistent.", Konfiguration.NormalisiereText(" Du bist ein Assistent. "));
+    }
+
+    [Fact]
     public void AntwortZustand_NurErlaubteUebergaenge()
     {
         (AntwortZustand Von, AntwortZustand Nach)[] erlaubteUebergaenge =

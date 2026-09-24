@@ -2,6 +2,24 @@ namespace Chat.Core;
 
 public sealed class Konfiguration
 {
+    public static string NormalisiereText(string? wert, string standard = "")
+    {
+        if (string.IsNullOrWhiteSpace(wert))
+        {
+            return standard;
+        }
+
+        string normalisiert = wert.Trim();
+        while (normalisiert.Length >= 2
+            && ((normalisiert.StartsWith('"') && normalisiert.EndsWith('"'))
+                || (normalisiert.StartsWith('\'') && normalisiert.EndsWith('\''))))
+        {
+            normalisiert = normalisiert[1..^1].Trim();
+        }
+
+        return normalisiert;
+    }
+
     public string AdresseModellserver { get; init; } = string.Empty;
 
     public string Modellname { get; init; } = string.Empty;
