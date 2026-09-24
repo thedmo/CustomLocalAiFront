@@ -11,6 +11,12 @@ Stand = Commit-Kürzel oder Branch und Uhrzeit. Art = Test (manuell) oder Review
 | 24.09.2026 | Codex, Auftrag PS | Arbeitsverzeichnis AP09/F04, Abschlusslauf 24.09. | Technischer Integrationstest per CLI | AP09b/F04, Z05: isolierter Container mit temporärer Testdatei | 5 synthetische Unterhaltungen nach Neustart erhalten; offene Antworten Gestoert/Neustart | Alle 5 über Store geladen und verglichen; leere Unterhaltung, Text und Endzustände korrekt; HTTP 200 ohne erreichbaren Modellserver | Keine im Prüfumfang | Nicht erforderlich; Testcontainer danach entfernt | Bestanden; Hauptdienst unverändert weiterlaufend |
 | 24.09.2026 | Gruppenmitglied offen | AP09/F04 nach technischem Abschluss | Ausstehender manueller Test/Review | T05/N03, beide Fensterbreiten, Tastatur, echtes Streaming; Schema/DI/Synchronisation | Gespeicherte Verläufe korrekt bedienbar, keine Regression, verständlicher Code | Nicht durchgeführt; Browserwerkzeug meldet keine verbundenen Browser/Tabs | Visuelle Abnahme und unabhängiges Review fehlen | Durch Gruppenmitglied ausführen | Offen |
 
+## F05: ausstehende manuelle Abnahme
+
+| Datum | Person | Stand | Art | Prüfumfang | Erwartet | Tatsächlich | Mängel | Korrekturen | Nachprüfung |
+|---|---|---|---|---|---|---|---|---|---|
+| 24.09.2026 | PS / unabhängige Reviewperson offen | Arbeitsverzeichnis F05 | Manueller Test und Code-Review ausstehend | T06/Z05, beide Fensterbreiten, Tastatur/Bestätigungsdialog, fünf Verläufe und echter Prozessneustart, Protokollerhalt; Store-/Service-Koordination | Nur bestätigte Unterhaltung vollständig entfernt; Anzahl sinkt um eins, keine automatische Ersatz-Unterhaltung; vier Originalverläufe erhalten; keine Löschung während aktiver Antwort; technische Protokolle unverändert | PS meldete beim ersten Stand eine gleichbleibende Unterhaltung mit leerem Inhalt; Ursache war die automatische Neuanlage nach erfolgreichem Löschen. Korrigierter Stand noch nicht manuell geprüft; automatisierte Nachweise stehen in der Karte | Automatische Ersatz-Unterhaltung entfernt; expliziter Regressionstest ergänzt | Manuelle Nachprüfung offen |
+
 ## Automatisierte Tests
 
 Die Läufe von `dotnet test` werden nicht hier protokolliert; der Nachweis ist die Ausgabe im Bericht der Karte und der grüne Lauf vor dem Review. Die Testfälle selbst stehen im Konzept 11.3 und in `Chat.Tests`.

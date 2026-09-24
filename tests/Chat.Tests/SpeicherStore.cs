@@ -8,6 +8,13 @@ public sealed class SpeicherStore : IStore
 {
     private readonly ConcurrentDictionary<Guid, Unterhaltung> _unterhaltungen = new();
 
+    public Task LoeschenAsync(Guid id, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        _unterhaltungen.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();

@@ -20,6 +20,8 @@ Fehler kommen als `StoerfallException` mit einem der vier Fälle: `ModellserverN
 
 Implementierungsstand F04, freigegeben durch PS am 23.09.2026: `ListeUnterhaltungenAsync(CancellationToken ct)` liefert `Task<IReadOnlyList<UnterhaltungInfo>>`; `UnterhaltungInfo` enthält `Guid Id`, `string Titel`, `DateTimeOffset ErstelltAm`. `OeffneUnterhaltungAsync(Guid id, CancellationToken ct)` liefert `Task<Unterhaltung>`. Beide verwenden ausschliesslich den Store; unbekannte Kennungen ergeben `KeyNotFoundException`. Die Liste ist nach ErstelltAm absteigend, danach Id sortiert; Nachrichten nach Zeit aufsteigend, danach Id.
 
+Implementierungsstand F05, beauftragt durch PS am 24.09.2026: `LoescheUnterhaltungAsync(Guid id, CancellationToken ct)` liefert `Task`; erfolgreicher Abschluss bestätigt die Löschung, auch bei bereits fehlender Kennung. Eine aktive Antwort verhindert die Löschung mit `InvalidOperationException`. Alle ChatService-Instanzen am selben Singleton-Store teilen die aktiven Anfragen und eine asynchrone Sperre für Antwortstart und Löschen. Die Registrierung bleibt bis zum gespeicherten Endzustand bestehen. Dadurch kann auch eine zweite Sitzung während einer Antwort nicht löschen; beginnt Löschen zuerst, scheitert späteres Senden beim Laden mit `KeyNotFoundException`. Die Seite behandelt beide Fälle verständlich. Nach dem Löschen öffnet sie eine verbleibende Unterhaltung oder zeigt eine leere Liste; sie erzeugt keine Ersatz-Unterhaltung. Diese Koordination gilt innerhalb des vorgesehenen einzelnen Backend-Prozesses.
+
 ## Backend zu Modellserver: `IModelServerClient` (Chat.Core), Umsetzung `ModelRunnerClient`
 
 | Methode                                            | Zweck                   | Eingabe                                                   | Ausgabe                    |
@@ -38,7 +40,7 @@ Der Adapter sendet `POST chat/completions` mit Modellname, Systemanweisung und V
 | `LoeschenAsync(id, ct)`            | Unterhaltung mit Nachrichten und Antworten entfernen (Kaskade), Protokoll bleibt                  |
 | `ProtokollAsync(eintrag, ct)`      | technischer Eintrag ohne Chattext (Konzept 9.3)                                                   |
 
-Implementierungsstand AP09: `IStore.ListeAsync(CancellationToken ct)` liefert `Task<IReadOnlyList<UnterhaltungInfo>>`. `SpeichernAsync` ist transaktional, `LadenAsync` rekonstruiert gespeicherte Zustände. Lösch- und Protokolloperationen sind weiterhin Zielverträge für F05/AP12 und noch nicht im C#-Interface enthalten. Startup-Migration und Neustart-Wiederherstellung gehören zur technischen Store-Einbindung und erweitern den fachlichen Vertrag nicht.
+Implementierungsstand AP09/F05: `IStore.ListeAsync(CancellationToken ct)` liefert `Task<IReadOnlyList<UnterhaltungInfo>>`. `SpeichernAsync` ist transaktional, `LadenAsync` rekonstruiert gespeicherte Zustände. `Task LoeschenAsync(Guid id, CancellationToken ct)` entfernt gezielt die Unterhaltung mit den vorhandenen SQLite-Kaskaden; fehlende Kennungen sind erfolgreich, technische Protokolle werden nicht angesprochen. Der Service koordiniert die Operation mit aktiven Antworten. Nur `ProtokollAsync` bleibt Zielvertrag für AP12 und ist noch nicht im C#-Interface enthalten. Startup-Migration und Neustart-Wiederherstellung gehören zur technischen Store-Einbindung und erweitern den fachlichen Vertrag nicht.
 
 ## Konfiguration (Abschnitt `Chat` in `appsettings.json`, Konzept 7.4)
 

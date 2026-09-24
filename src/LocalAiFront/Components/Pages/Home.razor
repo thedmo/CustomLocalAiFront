@@ -27,6 +27,10 @@
             <button id="neue-unterhaltung" type="button" class="btn btn-primary" disabled="@(_sendet || _laedt)" @onclick="NeueUnterhaltungAsync">
                 Neue Unterhaltung
             </button>
+            <button id="unterhaltung-loeschen" type="button" class="btn btn-outline-danger"
+                    disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty)" @onclick="LoescheUnterhaltungAsync">
+                Ausgewählte Unterhaltung löschen
+            </button>
         </aside>
 
         <div class="chat-panel">
@@ -124,10 +128,7 @@
         _status = "Unterhaltung wird geladen …";
         try
         {
-            Guid kennung = id ?? await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
-            Unterhaltung u = await ChatService.OeffneUnterhaltungAsync(kennung, _lebenszyklus.Token);
-            _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
-            ZeigeUnterhaltung(u);
+            await LadeVerlaufAsync(id);
             _status = "Bereit";
         }
         catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
@@ -148,6 +149,14 @@
         {
             _laedt = false;
         }
+    }
+
+    private async Task LadeVerlaufAsync(Guid? id)
+    {
+        Guid kennung = id ?? await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+        Unterhaltung u = await ChatService.OeffneUnterhaltungAsync(kennung, _lebenszyklus.Token);
+        _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
+        ZeigeUnterhaltung(u);
     }
 
     private void ZeigeUnterhaltung(Unterhaltung u)
@@ -211,6 +220,13 @@
         catch (StoerfallException ausnahme)
         {
             _fehler = ausnahme.Message;
+            _status = "Störung";
+        }
+        catch (KeyNotFoundException)
+        {
+            _unterhaltungId = Guid.Empty;
+            _eintraege.Clear();
+            _fehler = "Die Unterhaltung wurde inzwischen gelöscht. Bitte eine Unterhaltung öffnen oder neu anlegen.";
             _status = "Störung";
         }
         catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)

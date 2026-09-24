@@ -6,6 +6,13 @@ namespace Chat.Store.Sqlite;
 
 public sealed class SqliteStore(IDbContextFactory<ChatDbContext> factory) : IStore
 {
+    public async Task LoeschenAsync(Guid id, CancellationToken ct)
+    {
+        await using ChatDbContext db = await factory.CreateDbContextAsync(ct);
+        // Ein DELETE nutzt die vorhandenen Fremdschlüssel-Kaskaden atomar.
+        await db.Unterhaltungen.Where(u => u.Id == id).ExecuteDeleteAsync(ct);
+    }
+
     public async Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct)
     {
         await using ChatDbContext db = await factory.CreateDbContextAsync(ct);

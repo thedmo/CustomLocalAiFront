@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Chat.Core.Modelle;
 
@@ -6,7 +5,7 @@ namespace Chat.Core;
 
 public sealed class ChatService : IChatService
 {
-    private readonly ConcurrentDictionary<Guid, AktiveAnfrage> _aktiveAnfragen = new();
+    private readonly UnterhaltungsZugriff _zugriff;
     private readonly IModelServerClient _client;
     private readonly IStore _store;
     private readonly Konfiguration _konfiguration;
@@ -18,6 +17,7 @@ public sealed class ChatService : IChatService
     {
         _client = client;
         _store = store;
+        _zugriff = UnterhaltungsZugriff.FuerStore(store);
         _konfiguration = konfiguration;
     }
 
@@ -26,6 +26,9 @@ public sealed class ChatService : IChatService
 
     public Task<Unterhaltung> OeffneUnterhaltungAsync(Guid id, CancellationToken ct) =>
         _store.LadenAsync(id, ct);
+
+    public Task LoescheUnterhaltungAsync(Guid id, CancellationToken ct) =>
+        _zugriff.LoeschenAsync(_store, id, ct);
 
     public async Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
     {
@@ -37,14 +40,16 @@ public sealed class ChatService : IChatService
         return unterhaltung.Id;
     }
 
-    public async Task<AntwortLauf> SendeNachrichtAsync(
-        Guid unterhaltungId,
-        string text,
-        CancellationToken ct)
+    public async Task<AntwortLauf> SendeNachrichtAsync(Guid unterhaltungId, string text, CancellationToken ct)
     {
         PruefeEingabe(text);
         _konfiguration.Pruefen();
 
+        return await _zugriff.StartenAsync(() => StarteAntwortAsync(unterhaltungId, text, ct), ct);
+    }
+
+    private async Task<AntwortLauf> StarteAntwortAsync(Guid unterhaltungId, string text, CancellationToken ct)
+    {
         Unterhaltung unterhaltung = await _store.LadenAsync(unterhaltungId, ct);
         Antwort antwort = new(Guid.NewGuid());
         Nachricht nachricht = new(Guid.NewGuid(), text, DateTimeOffset.UtcNow, antwort);
@@ -52,7 +57,7 @@ public sealed class ChatService : IChatService
         await _store.SpeichernAsync(unterhaltung, ct);
 
         AktiveAnfrage anfrage = new(unterhaltung, antwort, _konfiguration.ZeitlimitSekunden, ct);
-        if (!_aktiveAnfragen.TryAdd(antwort.Id, anfrage))
+        if (!_zugriff.Anfragen.TryAdd(antwort.Id, anfrage))
         {
             anfrage.Dispose();
             throw new InvalidOperationException("Die Antwort-ID ist bereits aktiv.");
@@ -67,7 +72,7 @@ public sealed class ChatService : IChatService
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_aktiveAnfragen.TryGetValue(antwortId, out AktiveAnfrage? anfrage))
+        if (!_zugriff.Anfragen.TryGetValue(antwortId, out AktiveAnfrage? anfrage))
         {
             return;
         }
@@ -231,7 +236,7 @@ public sealed class ChatService : IChatService
             }
 
             await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
-            _aktiveAnfragen.TryRemove(anfrage.Antwort.Id, out _);
+            _zugriff.Anfragen.TryRemove(anfrage.Antwort.Id, out _);
             anfrage.Dispose();
         }
         finally

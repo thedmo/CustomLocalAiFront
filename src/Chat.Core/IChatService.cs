@@ -4,6 +4,9 @@ namespace Chat.Core;
 
 public interface IChatService
 {
+    /// <summary>Löscht eine Unterhaltung vollständig, sofern keine Antwort aktiv ist.</summary>
+    Task LoescheUnterhaltungAsync(Guid id, CancellationToken ct);
+
     /// <summary>Liefert Kennung, Titel und Datum, neueste Unterhaltung zuerst.</summary>
     Task<IReadOnlyList<UnterhaltungInfo>> ListeUnterhaltungenAsync(CancellationToken ct);
 

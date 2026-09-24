@@ -7,6 +7,144 @@ namespace Chat.Tests;
 public sealed class ChatServiceUnterhaltungenTests
 {
     [Fact]
+    public async Task Loeschen_OhneModellUndMitUnbekannterKennung_IstWiederholbar()
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        ArbeitsspeicherStore store = new();
+        FakeModelServerClient client = new();
+        ChatService service = new(client, store, new Konfiguration());
+        Guid id = await service.NeueUnterhaltungAsync(ct);
+        Guid behalten = await service.NeueUnterhaltungAsync(ct);
+        await service.LoescheUnterhaltungAsync(id, ct);
+        await service.LoescheUnterhaltungAsync(id, ct);
+        Assert.Equal(behalten, Assert.Single(await service.ListeUnterhaltungenAsync(ct)).Id);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => store.LadenAsync(id, ct));
+        Assert.Equal(0, client.Aufrufe);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Loeschen_AktiveAntwortInAndererSitzung_ErstNachEndeMoeglich(bool abbrechen)
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        SpeicherStore store = new();
+        ChatService sendend = ErzeugeService(store);
+        ChatService loeschend = ErzeugeService(store);
+        Guid id = await sendend.NeueUnterhaltungAsync(ct);
+        AntwortLauf lauf = await sendend.SendeNachrichtAsync(id, "Test", ct);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => loeschend.LoescheUnterhaltungAsync(id, ct));
+        await using IAsyncEnumerator<string> stream = lauf.Teile.GetAsyncEnumerator(ct);
+        Assert.True(await stream.MoveNextAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => loeschend.LoescheUnterhaltungAsync(id, ct));
+        if (abbrechen)
+        {
+            await sendend.AbbrechenAsync(lauf.AntwortId, ct);
+        }
+
+        Assert.False(await stream.MoveNextAsync());
+        await loeschend.LoescheUnterhaltungAsync(id, ct);
+        Assert.Empty(await store.ListeAsync(ct));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SendenUndLoeschen_Gleichzeitig_StelltKeineDatenWiederHer(bool sendenZuerst)
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        GesteuerterStore store = new();
+        ChatService sendend = ErzeugeService(store);
+        ChatService loeschend = ErzeugeService(store);
+        Guid id = await sendend.NeueUnterhaltungAsync(ct);
+        store.BlockiereSpeichern = sendenZuerst;
+        store.BlockiereLoeschen = !sendenZuerst;
+        Task? loeschen = sendenZuerst ? null : loeschend.LoescheUnterhaltungAsync(id, ct);
+        Task<AntwortLauf>? senden = sendenZuerst ? sendend.SendeNachrichtAsync(id, "Test", ct) : null;
+        await store.Gestartet.Task.WaitAsync(ct);
+        loeschen ??= loeschend.LoescheUnterhaltungAsync(id, ct);
+        senden ??= sendend.SendeNachrichtAsync(id, "Test", ct);
+        Assert.False(loeschen.IsCompleted);
+        Assert.False(senden.IsCompleted);
+        store.Freigabe.SetResult();
+        if (sendenZuerst)
+        {
+            AntwortLauf lauf = await senden;
+            await Assert.ThrowsAsync<InvalidOperationException>(() => loeschen);
+            await sendend.AbbrechenAsync(lauf.AntwortId, ct);
+            await loeschend.LoescheUnterhaltungAsync(id, ct);
+        }
+        else
+        {
+            await loeschen;
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => senden);
+        }
+        Assert.Empty(await store.ListeAsync(ct));
+    }
+
+    [Fact]
+    public async Task Loeschen_FehlerUndCancellation_GebenSperreFreiUndErhaltenDaten()
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        GesteuerterStore store = new();
+        ChatService service = ErzeugeService(store);
+        Guid id = await service.NeueUnterhaltungAsync(ct);
+        store.LoeschFehler = new IOException("Simulierter Speicherfehler");
+        await Assert.ThrowsAsync<IOException>(() => service.LoescheUnterhaltungAsync(id, ct));
+        Assert.Single(await store.ListeAsync(ct));
+        store.LoeschFehler = null;
+        using CancellationTokenSource abbruch = new();
+        abbruch.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.LoescheUnterhaltungAsync(id, abbruch.Token));
+        Assert.Single(await store.ListeAsync(ct));
+        await service.LoescheUnterhaltungAsync(id, ct);
+        Assert.Empty(await store.ListeAsync(ct));
+    }
+
+    private static ChatService ErzeugeService(IStore store) => new(new FakeModelServerClient(), store,
+        new Konfiguration { AdresseModellserver = "http://model-runner.invalid/engines/v1/", Modellname = "test" });
+
+    private sealed class GesteuerterStore : IStore
+    {
+        private readonly SpeicherStore _inner = new();
+        public bool BlockiereSpeichern { get; set; }
+        public bool BlockiereLoeschen { get; set; }
+        public Exception? LoeschFehler { get; set; }
+        public TaskCompletionSource Gestartet { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Freigabe { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct) => _inner.ListeAsync(ct);
+        public Task<Unterhaltung> LadenAsync(Guid id, CancellationToken ct) => _inner.LadenAsync(id, ct);
+        public async Task SpeichernAsync(Unterhaltung unterhaltung, CancellationToken ct)
+        {
+            if (BlockiereSpeichern)
+            {
+                await WarteAsync(ct);
+            }
+
+            await _inner.SpeichernAsync(unterhaltung, ct);
+        }
+        public async Task LoeschenAsync(Guid id, CancellationToken ct)
+        {
+            if (LoeschFehler is not null)
+            {
+                throw LoeschFehler;
+            }
+
+            if (BlockiereLoeschen)
+            {
+                await WarteAsync(ct);
+            }
+
+            await _inner.LoeschenAsync(id, ct);
+        }
+        private async Task WarteAsync(CancellationToken ct)
+        {
+            Gestartet.TrySetResult();
+            await Freigabe.Task.WaitAsync(ct);
+        }
+    }
+
+    [Fact]
     public async Task GeoeffneteUnterhaltung_WeitereNachricht_ErhaeltBisherigenVerlauf()
     {
         CancellationToken ct = TestContext.Current.CancellationToken;

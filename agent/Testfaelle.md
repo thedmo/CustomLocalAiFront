@@ -21,6 +21,17 @@ Vorschlag als Gerüste; Rod führt die Tabelle in AP11 zu Ende und überträgt s
 | T11 | Zeitüberschreitung | Zeitlimit 5 Sekunden, Modell langsam | Nachricht senden | Zustand Gestört mit Grund Zeitüberschreitung, Eingabe frei | auto (Fake mit Verzögerung) | M09 |
 | T12 | Zustandsübergänge | Fake-Adapter | je dokumentierten Übergang ein Lauf | nur die sechs erlaubten Übergänge, kein anderer | auto | M06 |
 
+### Ergänzende Prüfungen T06 (F05)
+
+- Bestätigung abbrechen: Verlauf und Liste unverändert, kein Löschaufruf. Bestätigen: nur ausgewählte Unterhaltung mit Nachrichten und Antworten entfernt; eine vorhandene Unterhaltung wird aktiv, andernfalls bleibt die Liste leer. Keine automatische Ersatz-Unterhaltung.
+- SQLite-Datei erneut öffnen und Initialisierung ausführen: gelöschte Kennung fehlt, andere Verläufe samt Zuordnung und Endzuständen unverändert. Leere Unterhaltung und wiederholtes Löschen ebenfalls prüfen.
+- Während Laden, Senden und Löschen ist die Löschbedienung gesperrt. Aktive Antwort aus einer zweiten Service-Instanz verhindert Löschen bis zum gespeicherten Abschluss oder Abbruch.
+- Senden/Löschen gezielt überlappen lassen: Senden zuerst verhindert Löschen; Löschen zuerst verhindert Senden an die fehlende Kennung. Keine Wiederherstellung gelöschter Daten.
+- Speicherfehler und Cancellation erhalten Daten; erneuter Versuch möglich. Scheitert die Neuanlage nach erfolgreichem Löschen, bleibt der alte Verlauf entfernt und die Seite bedienbar.
+- In zweiter Sitzung inzwischen gelöschte Unterhaltung: Senden zeigt einen Hinweis; Öffnen/Neuanlegen bleibt möglich.
+- Fünf gespeicherte Verläufe über die Komponente mit echtem temporärem SQLite-Store prüfen; einen löschen, nach Neuinitialisierung vier Originalverläufe erhalten. Automatisch angelegte leere Unterhaltungen separat zählen. Kein Modellaufruf erforderlich.
+- Automatisiert in `ChatServiceUnterhaltungenTests`, `ChatSeiteUnterhaltungenTests` und `SqliteStoreTests`; manueller T06/Z05-Nachweis auf dem Referenzgerät einschliesslich unveränderter technischer Protokolle bleibt erforderlich.
+
 ## Nichtfunktionale Testfälle (mindestens fünf)
 
 | Nr. | Ziel | Voraussetzung | Schritte | Erwartetes Ergebnis | Art | Nachweis für |

@@ -71,6 +71,7 @@ public sealed class ChatServicePersistenzTests
         public TaskCompletionSource Freigabe { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct) => inner.ListeAsync(ct);
         public Task<Unterhaltung> LadenAsync(Guid id, CancellationToken ct) => inner.LadenAsync(id, ct);
+        public Task LoeschenAsync(Guid id, CancellationToken ct) => inner.LoeschenAsync(id, ct);
 
         public async Task SpeichernAsync(Unterhaltung u, CancellationToken ct)
         {

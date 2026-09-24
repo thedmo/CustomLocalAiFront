@@ -11,6 +11,52 @@ public sealed class SqliteStoreTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
+    public async Task Loeschen_KaskadeUndNeustart_ErhaeltNurAndereUnterhaltung()
+    {
+        await using SqliteTestdatenbank datei = await SqliteTestdatenbank.ErzeugeAsync();
+        SqliteStore store = new(datei);
+        Unterhaltung loeschen = new(Guid.NewGuid(), "Test", DateTimeOffset.UtcNow);
+        Unterhaltung behalten = new(Guid.NewGuid(), "Test", DateTimeOffset.UtcNow);
+        foreach (Unterhaltung u in new[] { loeschen, behalten })
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                u.FuegeNachrichtHinzu(new Nachricht(Guid.NewGuid(), "Test", DateTimeOffset.UtcNow,
+                    Antwort.Wiederherstellen(Guid.NewGuid(), "Teil", AntwortZustand.Fertig, null, null, null)));
+            }
+            await store.SpeichernAsync(u, Ct);
+        }
+        await store.LoeschenAsync(loeschen.Id, Ct);
+        await store.LoeschenAsync(loeschen.Id, Ct);
+        await new SqliteInitialisierung(datei).InitialisierenAsync(Ct);
+        SqliteStore neu = new(datei);
+        Assert.Equal(behalten.Id, Assert.Single(await neu.ListeAsync(Ct)).Id);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => neu.LadenAsync(loeschen.Id, Ct));
+        Unterhaltung geladen = await neu.LadenAsync(behalten.Id, Ct);
+        Assert.Equal(behalten.Nachrichten.Select(n => (n.Id, n.Text, n.Antwort.Id, n.Antwort.Text, n.Antwort.Zustand)),
+            geladen.Nachrichten.Select(n => (n.Id, n.Text, n.Antwort.Id, n.Antwort.Text, n.Antwort.Zustand)));
+        await using ChatDbContext db = datei.CreateDbContext();
+        Assert.Equal(2, await db.Nachrichten.CountAsync(Ct));
+        Assert.Equal(2, await db.Antworten.CountAsync(Ct));
+        Assert.All(await db.Nachrichten.ToListAsync(Ct), n => Assert.Equal(behalten.Id, n.UnterhaltungId));
+    }
+
+    [Fact]
+    public async Task Loeschen_LeereUnterhaltungUndCancellation()
+    {
+        await using SqliteTestdatenbank datei = await SqliteTestdatenbank.ErzeugeAsync();
+        SqliteStore store = new(datei);
+        Unterhaltung u = new(Guid.NewGuid(), "Test", DateTimeOffset.UtcNow);
+        await store.SpeichernAsync(u, Ct);
+        using CancellationTokenSource abbruch = new();
+        abbruch.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.LoeschenAsync(u.Id, abbruch.Token));
+        Assert.Single(await store.ListeAsync(Ct));
+        await store.LoeschenAsync(u.Id, Ct);
+        Assert.Empty(await store.ListeAsync(Ct));
+    }
+
+    [Fact]
     public async Task Migration_LeereDatei_ErstelltSchemaUndIstWiederholbar()
     {
         await using SqliteTestdatenbank datei = await SqliteTestdatenbank.ErzeugeAsync();

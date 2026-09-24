@@ -11,10 +11,33 @@ public sealed class FakeChatService : IChatService
     public Task? LadeVerzoegerung { get; set; }
     public Guid? ZuletztGeoeffnet { get; private set; }
     public Guid? ZuletztGesendet { get; private set; }
+    public Guid? ZuletztGeloescht { get; private set; }
+    public Task? LoeschVerzoegerung { get; set; }
+    public Exception? LoeschAusnahme { get; set; }
+    public Exception? ListenAusnahme { get; set; }
+
+    public async Task LoescheUnterhaltungAsync(Guid id, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        ZuletztGeloescht = id;
+        if (LoeschVerzoegerung is not null)
+        {
+            await LoeschVerzoegerung.WaitAsync(ct);
+        }
+        if (LoeschAusnahme is not null)
+        {
+            throw LoeschAusnahme;
+        }
+        Unterhaltungen.Remove(id);
+    }
 
     public Task<IReadOnlyList<UnterhaltungInfo>> ListeUnterhaltungenAsync(CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        if (ListenAusnahme is not null)
+        {
+            throw ListenAusnahme;
+        }
         IReadOnlyList<UnterhaltungInfo> liste = Unterhaltungen.Values
             .OrderByDescending(u => u.ErstelltAm).ThenBy(u => u.Id)
             .Select(u => new UnterhaltungInfo(u.Id, u.Titel, u.ErstelltAm)).ToArray();
