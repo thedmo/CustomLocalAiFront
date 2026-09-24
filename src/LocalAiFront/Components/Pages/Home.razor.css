@@ -1,9 +1,3 @@
-.page-title {
-  flex: 0 0 auto;
-  width: min(100%, 78rem);
-  margin: 0 auto 1rem;
-  padding-inline: 1rem;
-}
 .chat-shell {
   position: relative;
   display: flex;
@@ -35,13 +29,17 @@
 .chat-kopfzeile {
   position: relative;
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 0 4.5rem;
   align-items: center;
   justify-content: center;
-  min-height: 3.25rem;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  max-height: 4.5rem;
   margin-bottom: 0.5rem;
 }
 .chat-hinweisbereich {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -63,10 +61,6 @@
 }
 .chat-hinweis p + p {
   margin-top: 0.25rem;
-}
-.chat-hinweis--status {
-  color: var(--hfu-ink-secondary);
-  background: var(--hfu-surface);
 }
 .chat-hinweis--fehler {
   border-color: var(--hfu-red-dark);
@@ -110,15 +104,82 @@
   flex: 0 0 auto;
   width: 100%;
 }
+.chat-eingabefeld {
+  position: relative;
+}
 .chat-eingabe textarea {
   max-height: 9rem;
+  padding-right: 4rem;
   overflow-y: auto;
   resize: none;
 }
-.chat-aktionen {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+.senden-button {
+  position: absolute;
+  right: 0.625rem;
+  bottom: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 2px solid var(--hfu-red-dark);
+  border-radius: 999rem;
+  color: var(--hfu-white);
+  background: var(--hfu-red-dark);
+}
+.senden-button:hover:not(:disabled) {
+  border-color: var(--hfu-red);
+  background: var(--hfu-red);
+}
+.senden-button:focus-visible {
+  outline: 0.2rem solid var(--hfu-red-dark);
+  outline-offset: 0.15rem;
+}
+.senden-button:disabled {
+  border-color: var(--hfu-line);
+  color: var(--hfu-muted);
+  background: var(--hfu-surface);
+}
+.senden-button svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chat-unterzeile {
+  display: grid;
+  grid-template-columns: minmax(2.75rem, 1fr) auto minmax(2.75rem, 1fr);
+  align-items: center;
+  min-height: 2.75rem;
+  margin-top: 0.5rem;
+}
+.chat-status {
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--hfu-ink-secondary);
+  font-size: 0.875rem;
+  text-align: center;
+}
+.chat-statuspunkt {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--hfu-red-dark);
+}
+.chat-statuspunkt--bereit {
+  background: var(--hfu-status-ready);
+}
+.chat-unterzeile #abbrechen {
+  grid-column: 3;
+  justify-self: end;
 }
 .unterhaltungs-liste {
   display: flex;
@@ -199,12 +260,6 @@
   display: none;
 }
 @media (max-width: 800px) {
-  .page-title {
-    margin-bottom: 0.5rem;
-    padding-inline: 0.75rem;
-    font-size: 1.75rem;
-  }
-
   .chat-shell {
     padding: 0 0.75rem 0.75rem;
   }
@@ -267,10 +322,6 @@
     max-width: 100%;
   }
 
-  .chat-aktionen {
-    align-items: stretch;
-    flex-direction: column;
-  }
 }
 
 @media (max-width: 420px) {

@@ -7,8 +7,6 @@
 
 <PageTitle>Lokaler KI-Chat</PageTitle>
 
-<h1 class="page-title">Lokaler KI-Chat</h1>
-
 <div class="chat-shell">
     <div class="chat-main">
         <aside id="unterhaltungen" class="unterhaltungs-liste @(_seitenleisteOffen ? "unterhaltungs-liste--offen" : null)"
@@ -61,15 +59,14 @@
                     Unterhaltungen
                 </button>
 
-                <div class="chat-hinweisbereich">
-                    <div class="chat-hinweis @(_fehler is null ? "chat-hinweis--status" : "chat-hinweis--fehler")">
-                        <p id="chat-status" role="status" aria-live="polite">@_status</p>
-                        @if (_fehler is not null)
-                        {
+                @if (_fehler is not null)
+                {
+                    <div class="chat-hinweisbereich">
+                        <div class="chat-hinweis chat-hinweis--fehler">
                             <p role="alert">@_fehler</p>
-                        }
+                        </div>
                     </div>
-                </div>
+                }
             </div>
 
             <section id="chat-verlauf" class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite" @ref="_chatVerlaufRef">
@@ -92,15 +89,23 @@
             </section>
 
             <div class="chat-eingabe">
-                <label for="nachricht" class="form-label">Nachricht</label>
-                <textarea id="nachricht" class="form-control" rows="3" maxlength="4001" placeholder="Nachricht eingeben …"
-                          @bind="_eingabe" @bind:event="oninput" disabled="@(_sendet || _laedt)"></textarea>
-
-                <div class="chat-aktionen">
-                    <button id="senden" type="button" class="btn btn-primary" @onclick="SendeAsync"
+                <div class="chat-eingabefeld">
+                    <textarea id="nachricht" class="form-control" rows="3" maxlength="4001" placeholder="Nachricht eingeben …"
+                              aria-describedby="chat-status" @bind="_eingabe" @bind:event="oninput"
+                              disabled="@(_sendet || _laedt)"></textarea>
+                    <button id="senden" type="button" class="senden-button" aria-label="Nachricht senden"
+                            title="Nachricht senden" @onclick="SendeAsync"
                             disabled="@(_sendet || _laedt || string.IsNullOrWhiteSpace(_eingabe))">
-                        Senden
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 19V5M5 12l7-7 7 7" />
+                        </svg>
                     </button>
+                </div>
+
+                <div class="chat-unterzeile">
+                    <p id="chat-status" class="chat-status" role="status" aria-live="polite"><span
+                        class="chat-statuspunkt @(_fehler is null && _status == "Bereit" ? "chat-statuspunkt--bereit" : "chat-statuspunkt--nicht-bereit")"
+                        aria-hidden="true"></span>@_status</p>
 
                     @if (_sendet)
                     {

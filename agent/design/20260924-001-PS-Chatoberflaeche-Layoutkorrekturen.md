@@ -46,9 +46,11 @@ Die verbindlichen Farben, Typografie, Abstände, Zustände, Fokusdarstellung und
 - Flex- und Grid-Container müssen mit geeigneten Mindestgrössen aufgebaut sein, damit Überlauf in den vorgesehenen Bereichen statt auf `body` oder dem Seitencontainer entsteht.
 - Es darf bei 320 CSS-Pixeln Breite kein horizontales Scrollen geben.
 
-### 3.2 Message-/Hinweisbox
+### 3.2 Status und Message-/Hinweisbox
 
-- Status-, Hinweis- und Fehlermeldungen erscheinen oben in der Mitte des sichtbaren Chatbereichs.
+- Hinweis- und Fehlermeldungen erscheinen oben in der Mitte des sichtbaren Chatbereichs.
+- Der kompakte Betriebsstatus wie «Bereit» erscheint unterhalb des Texteingabefelds und ist horizontal zentriert.
+- Ein kleiner Statuspunkt ergänzt den Statustext: grün bei «Bereit», rot bei einem Fehler- oder Bearbeitungszustand. Der Text bleibt für die Bedeutung verbindlich; Farbe allein reicht nicht.
 - Die Box besitzt eine begrenzte Breite, bleibt auf kleinen Bildschirmen innerhalb der seitlichen Abstände und überdeckt keine unzugänglichen Bedienelemente.
 - Die Platzierung verursacht beim Ein- und Ausblenden keinen störenden Layoutsprung.
 - Meldungsart und Bedeutung sind durch Text und, falls verwendet, Symbol erkennbar; Farbe allein reicht nicht.
@@ -72,13 +74,23 @@ Die verbindlichen Farben, Typografie, Abstände, Zustände, Fokusdarstellung und
 - Touch-Ziele sind ungefähr 44 mal 44 CSS-Pixel oder grösser.
 - Die Oberfläche wird mindestens bei 320, 375, 768, 1024 und 1440 CSS-Pixeln sowie bei 200 Prozent Zoom geprüft.
 
+### 3.5 Institutioneller Absender und stabile Abmessungen
+
+- Das lokale HFU-Hauptlogo wird im festen Seitenkopf als institutioneller Absender angezeigt; es wird nicht extern geladen, beschnitten oder verzerrt.
+- Seitenkopf, Chat-Kopfzeile, Nachrichtenbereich und Unterhaltungsliste behalten beim Wechsel der Unterhaltung ihre Abmessungen. Unterschiedliche Meldungs- und Nachrichtenlängen verändern nur den Inhalt der vorgesehenen Scrollbereiche.
+- Die Chatoberfläche verwendet die roten und neutralen Farben aus `agent/design/CorporateDesign.md`. Für den Tastaturfokus wird auf ausdrücklichen Wunsch für diese Anwendung `red-dark` statt des dort dokumentierten grünen Fokus-Tokens verwendet. Einzige grüne Zustandsfarbe ist der ebenfalls im Corporate Design enthaltene Wert `#006D65` für den ausdrücklich gewünschten «Bereit»-Punkt.
+- Der Senden-Button liegt rechts im Texteingabefeld, zeigt einen zugänglich beschrifteten Pfeil statt des sichtbaren Texts «Senden» und verwendet im aktiven Zustand ausschliesslich HFU-Rot.
+
 ## 4. Betroffene Dateien
 
 Vor Beginn prüft der umsetzende Agent den aktuellen Stand und passt die Liste an, ohne den fachlichen Umfang zu erweitern.
 
 - `src/LocalAiFront/Components/Pages/Home.razor`
 - `src/LocalAiFront/Components/Pages/Home.razor.css`
+- `src/LocalAiFront/Components/Layout/MainLayout.razor` und `MainLayout.razor.css`
+- `src/LocalAiFront/Components/Layout/ReconnectModal.razor.css`
 - vorhandene partielle Dateien `src/LocalAiFront/Components/Pages/Home.*.cs`, soweit Auswahl, Löschen oder die mobile Seitenleiste dort bereits umgesetzt sind
+- lokales Logo unter `src/LocalAiFront/wwwroot/`, kopiert aus `src/LocalAiFront/resources/`
 - vorhandene Chat-Seiten-Tests unter `tests/Chat.Tests`, soweit die geänderten Zustände automatisiert prüfbar sind
 - `agent/protokolle/KI-Einsatz.md`
 - diese Datei unter Abschnitt 9 Ergebnis
@@ -99,11 +111,16 @@ Neue NuGet-Pakete, JavaScript-Bibliotheken oder externe Assets sind nicht vorges
 - [ ] Nachrichtenverlauf, mehrzeiliges Eingabefeld und Unterhaltungsliste scrollen bei Überlauf jeweils innerhalb ihres Bereichs. Implementiert, Sichtprüfung offen.
 - [ ] Bei vielen Unterhaltungen bleiben „Neue Unterhaltung“ und die übrigen zentralen Bedienelemente erreichbar. Implementiert, Sichtprüfung offen.
 - [ ] Die Message-/Hinweisbox erscheint oben und horizontal zentriert, ohne Fokusverlust oder störenden Layoutsprung. Implementiert, Sichtprüfung offen.
+- [x] Der Betriebsstatus steht unter dem Eingabefeld; der Senden-Button ist als zugänglich beschrifteter Pfeil innerhalb des Eingabefelds umgesetzt. Markup und Zustände sind automatisiert geprüft.
+- [x] Der Statuspunkt ist bei «Bereit» grün und bei einem Fehlerzustand rot; der Statustext vermittelt die Bedeutung zusätzlich.
 - [x] Die ausgewählte Unterhaltung bleibt beim Fokussieren und Anklicken ihrer Löschbedienung semantisch ausgewählt; Abbruch, laufendes Löschen und Fehler sind automatisiert geprüft.
 - [ ] Fokus, Auswahl, Löschbestätigung, Fehler und deaktivierte Zustände sind voneinander unterscheidbar und nicht nur über Farbe vermittelt. Implementiert, Sichtprüfung offen.
 - [x] Löschen, Abbrechen des Löschens und ein Löschfehler behalten das bestehende fachliche Verhalten.
 - [x] Die mobile Unterhaltungsliste lässt sich öffnen und schliessen; Zustand und Bedienelemente sind automatisiert geprüft. Manuelle Tastatur- und Touchprüfung offen.
 - [ ] Farben, Typografie und Abstände entsprechen `agent/design/CorporateDesign.md`. Token umgesetzt, Sichtprüfung offen.
+- [ ] Das lokale HFU-Logo ist im festen Seitenkopf sichtbar und unverzerrt. Implementiert, erneute Sichtprüfung offen.
+- [ ] Seitenkopf, Chat-Kopfzeile und Nachrichtenbereich ändern beim Wechsel der Unterhaltung ihre Abmessungen nicht. Implementiert, erneute Sichtprüfung offen.
+- [x] Anwendungs- und Framework-Komponenten verwenden keine blauen oder grünen Zustandsfarben; der anwendungsspezifische Fokus ist mit `red-dark` umgesetzt.
 - [x] Die Lösung benötigt keine neue Abhängigkeit und ändert keine Schnittstelle.
 
 ## 7. Prüfungen
@@ -145,30 +162,39 @@ Umgesetzt:
 - Aktionen für neue und zu löschende Unterhaltungen bleiben ausserhalb der scrollenden Liste erreichbar.
 - Mobile Seitenleiste ist unter 800 Pixeln standardmässig geschlossen, lässt sich semantisch öffnen und schliessen und respektiert reduzierte Bewegung.
 - Status und Fehler stehen in einer stabilen, oben zentrierten Hinweisbox mit getrennten `status`- und `alert`-Semantiken.
-- Aktive Unterhaltung verwendet unabhängig vom Fokus `aria-current`, `aria-pressed` und eine eigene HFU-Auswahlklasse; Fokus bleibt über den grünen Corporate-Design-Rahmen separat sichtbar.
+- Aktive Unterhaltung verwendet unabhängig vom Fokus `aria-current`, `aria-pressed` und eine eigene HFU-Auswahlklasse; Fokus bleibt über einen dunkelroten Rahmen separat sichtbar.
 - HFU-Farb- und Typografievariablen aus `agent/design/CorporateDesign.md` sind zentral in `app.css` hinterlegt und für die geänderten Elemente verwendet.
+- Nach der ersten manuellen Rückmeldung wurde das lokale HFU-Hauptlogo in einen fest bemessenen Seitenkopf aufgenommen. Die Chat-Kopfzeile besitzt ebenfalls eine feste Höhe, sodass Hinweise und wechselnde Unterhaltungsinhalte die verfügbaren Bereiche nicht mehr verschieben.
+- Blaue und grüne Bootstrap-Standardzustände, Reconnect-Bedienelemente, Validierungs- und Fokusfarben wurden für diese Anwendung auf HFU-Rot beziehungsweise die neutralen HFU-Farben abgebildet.
+- Der Senden-Button ist unabhängig von Bootstrap als roter, runder Pfeil rechts im Eingabefeld gestaltet und besitzt weiterhin den zugänglichen Namen «Nachricht senden».
+- Der Betriebsstatus steht mittig unter dem Eingabefeld. Sein dekorativer Punkt ist bei «Bereit» grün und ansonsten rot; Fehlerdetails bleiben als Alarm oben im Chatbereich.
 
 Geänderte Dateien:
 
-- `src/LocalAiFront/Components/Layout/MainLayout.razor.css`
+- `src/LocalAiFront/Components/Layout/MainLayout.razor`, `MainLayout.razor.css`, `ReconnectModal.razor.css`
 - `src/LocalAiFront/Components/Pages/Home.razor`, `Home.razor.css`, `Home.Entwurf.cs`
 - neu `src/LocalAiFront/Components/Pages/Home.Navigation.cs`, `Home.Unterhaltungen.cs`
 - `src/LocalAiFront/wwwroot/app.css`
+- neu `src/LocalAiFront/wwwroot/hfu-logo.jpg`, lokale Kopie von `src/LocalAiFront/resources/hfu_Logo_400x100.jpg`
 - `tests/Chat.Tests/ChatSeiteUnterhaltungenTests.cs`
 - `agent/protokolle/KI-Einsatz.md` und diese Datei
 
 Nicht angefasst (bewusst):
 
 - Fachliche Löschregeln, `IChatService`, Store, Adapter, Datenbank, Migrationen, Konfiguration und Docker-Setup.
-- Vorhandene Logos und Bilder; das Mockup diente als Strukturreferenz, ohne ein zusätzliches Asset zu kopieren.
+- Weitere vorhandene Bilder und die alte Logo-Variante; verwendet wird ausschliesslich das aktuelle lokale HFU-Hauptlogo.
 
 Prüfungen:
 
 - `dotnet build CustomLocalAiFront.slnx --no-restore --disable-build-servers -m:1`: OK, 0 Warnungen, 0 Fehler.
 - `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 66 bestanden, 0 fehlgeschlagen, 1 expliziter Integrationstest übersprungen.
+- Nach der Statusverschiebung meldeten zwei bestehende Tests zunächst zusätzlichen Einrückungs-Whitespace im exakten Status-Text. Das Markup wurde ohne Testabschwächung korrigiert; der anschliessende Gesamtlauf war grün.
+- Ein zwischenzeitlicher Testaufruf mit der für diesen Test-Runner ungeeigneten Option `--disable-build-servers` führte 0 Tests aus (Exitcode 5). Der unveränderte freigegebene Aufruf ohne diese Option war anschliessend vollständig grün.
+- Ein weiterer Test-Host-Start scheiterte vor Testbeginn in der Sandbox an einer nicht zugänglichen Windows Named Pipe. Der isoliert mit den bereits freigegebenen erweiterten Rechten wiederholte Testlauf war vollständig grün.
 - `dotnet format` auf den betroffenen C#-Dateien: keine verbleibende Änderung.
 - `git diff --check`: OK.
-- Manuelle N03-Sichtprüfung: offen; der Computer-Use-Dienst stellte keinen Browser bereit.
+- Erste manuelle Sichtprüfung durch PS: fehlendes Logo, wechselnde Bereichsgrössen und blaue beziehungsweise grüne Standardfarben beanstandet. Korrekturen umgesetzt; erneute N03-Sichtprüfung offen.
+- Automatisierte Browser-Sichtprüfung: nicht möglich; der Computer-Use-Dienst stellte keinen Browser bereit.
 
 Selbstprüfung (`agent/Review_Checkliste.md`):
 
@@ -178,7 +204,7 @@ Selbstprüfung (`agent/Review_Checkliste.md`):
 - Fehlerbehandlung und Fachzustände: ja; bestehender Löschablauf unverändert, Regressionstests grün.
 - Konfiguration, Sicherheit und Datenschutz: ja; keine Konfigurationsänderung, externen Aufrufe, Geheimnisse oder Chatinhalte im Protokoll.
 - Semantisches HTML und Barrierefreiheit: ja im Code; echte Buttons, `aria-current`, `aria-expanded`, `status`, `alert`, Fokusdarstellung und reduzierte Bewegung. Manuelle Tastatur-, Touch- und Zoomprüfung offen.
-- Corporate Design und Fensterbreiten: Token und Breakpoint umgesetzt; visuelle N03-Prüfung bei den fünf Breiten offen.
+- Corporate Design und Fensterbreiten: Logo, HFU-Farbabbildung, feste Kopfbereiche, Token und Breakpoint umgesetzt; erneute visuelle N03-Prüfung bei den fünf Breiten offen.
 - Tests und Nachvollziehbarkeit: ja automatisiert; Build und 66 Tests grün, KI-Einsatz dokumentiert. Menschliches Review offen.
 
 Offen, Risiken, Befunde ausserhalb des Auftrags:
