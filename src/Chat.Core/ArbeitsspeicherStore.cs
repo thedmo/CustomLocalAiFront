@@ -7,6 +7,22 @@ public sealed class ArbeitsspeicherStore : IStore
 {
     private readonly ConcurrentDictionary<Guid, Unterhaltung> _unterhaltungen = new();
 
+    public Task LoeschenAsync(Guid id, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        _unterhaltungen.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        IReadOnlyList<UnterhaltungInfo> liste = _unterhaltungen.Values
+            .OrderByDescending(u => u.ErstelltAm).ThenBy(u => u.Id)
+            .Select(u => new UnterhaltungInfo(u.Id, u.Titel, u.ErstelltAm)).ToArray();
+        return Task.FromResult(liste);
+    }
+
     public Task SpeichernAsync(Unterhaltung unterhaltung, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();

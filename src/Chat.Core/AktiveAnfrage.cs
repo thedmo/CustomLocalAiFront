@@ -34,6 +34,9 @@ internal sealed class AktiveAnfrage : IDisposable
 
     public Antwort Antwort { get; }
 
+    // Mutation und Speicherung teilen dieselbe Sperre, damit kein alter Teil den Abschluss überschreibt.
+    public SemaphoreSlim Speichersperre { get; } = new(1, 1);
+
     public CancellationTokenSource BenutzerAbbruch { get; }
 
     public CancellationToken Lebenszyklus { get; }

@@ -1,12 +1,11 @@
-using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Chat.Core.Modelle;
 
 namespace Chat.Core;
 
-public sealed class ChatService : IChatService
+public sealed partial class ChatService : IChatService
 {
-    private readonly ConcurrentDictionary<Guid, AktiveAnfrage> _aktiveAnfragen = new();
+    private readonly UnterhaltungsZugriff _zugriff;
     private readonly IModelServerClient _client;
     private readonly IStore _store;
     private readonly Konfiguration _konfiguration;
@@ -18,50 +17,32 @@ public sealed class ChatService : IChatService
     {
         _client = client;
         _store = store;
+        _zugriff = UnterhaltungsZugriff.FuerStore(store);
         _konfiguration = konfiguration;
     }
 
-    public async Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
-    {
-        Unterhaltung unterhaltung = new(
-            Guid.NewGuid(),
-            "Neue Unterhaltung",
-            DateTimeOffset.UtcNow);
-        await _store.SpeichernAsync(unterhaltung, ct);
-        return unterhaltung.Id;
-    }
+    public Task<IReadOnlyList<UnterhaltungInfo>> ListeUnterhaltungenAsync(CancellationToken ct) =>
+        _store.ListeAsync(ct);
 
-    public async Task<AntwortLauf> SendeNachrichtAsync(
-        Guid unterhaltungId,
-        string text,
-        CancellationToken ct)
+    public Task<Unterhaltung> OeffneUnterhaltungAsync(Guid id, CancellationToken ct) =>
+        _store.LadenAsync(id, ct);
+
+    public Task LoescheUnterhaltungAsync(Guid id, CancellationToken ct) =>
+        _zugriff.LoeschenAsync(_store, id, ct);
+
+    public async Task<AntwortLauf> SendeNachrichtAsync(Guid unterhaltungId, string text, CancellationToken ct)
     {
         PruefeEingabe(text);
         _konfiguration.Pruefen();
 
-        Unterhaltung unterhaltung = await _store.LadenAsync(unterhaltungId, ct);
-        Antwort antwort = new(Guid.NewGuid());
-        Nachricht nachricht = new(Guid.NewGuid(), text, DateTimeOffset.UtcNow, antwort);
-        unterhaltung.FuegeNachrichtHinzu(nachricht);
-        await _store.SpeichernAsync(unterhaltung, ct);
-
-        AktiveAnfrage anfrage = new(unterhaltung, antwort, _konfiguration.ZeitlimitSekunden, ct);
-        if (!_aktiveAnfragen.TryAdd(antwort.Id, anfrage))
-        {
-            anfrage.Dispose();
-            throw new InvalidOperationException("Die Antwort-ID ist bereits aktiv.");
-        }
-
-        _ = BeobachteLebenszyklusAsync(anfrage);
-
-        return new AntwortLauf(antwort.Id, StreameAntwortAsync(anfrage));
+        return await _zugriff.StartenAsync(() => StarteAntwortAsync(unterhaltungId, text, ct), ct);
     }
 
     public async Task AbbrechenAsync(Guid antwortId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_aktiveAnfragen.TryGetValue(antwortId, out AktiveAnfrage? anfrage))
+        if (!_zugriff.Anfragen.TryGetValue(antwortId, out AktiveAnfrage? anfrage))
         {
             return;
         }
@@ -105,7 +86,7 @@ public sealed class ChatService : IChatService
                 break;
             }
 
-            if (!anfrage.VersucheTeilHinzuzufuegen(schritt.Teil!))
+            if (!await SpeichereTeilAsync(anfrage, schritt.Teil!))
             {
                 yield break;
             }
@@ -216,14 +197,41 @@ public sealed class ChatService : IChatService
         Stoerfall? fall,
         string? grund)
     {
-        if (!anfrage.VersucheAbzuschliessen(zustand, fall, grund))
+        await anfrage.Speichersperre.WaitAsync();
+        try
         {
-            return;
-        }
+            if (!anfrage.VersucheAbzuschliessen(zustand, fall, grund))
+            {
+                return;
+            }
 
-        await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
-        _aktiveAnfragen.TryRemove(anfrage.Antwort.Id, out _);
-        anfrage.Dispose();
+            await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
+            _zugriff.Anfragen.TryRemove(anfrage.Antwort.Id, out _);
+            anfrage.Dispose();
+        }
+        finally
+        {
+            anfrage.Speichersperre.Release();
+        }
+    }
+
+    private async Task<bool> SpeichereTeilAsync(AktiveAnfrage anfrage, string teil)
+    {
+        await anfrage.Speichersperre.WaitAsync();
+        try
+        {
+            if (!anfrage.VersucheTeilHinzuzufuegen(teil))
+            {
+                return false;
+            }
+
+            await _store.SpeichernAsync(anfrage.Unterhaltung, CancellationToken.None);
+            return true;
+        }
+        finally
+        {
+            anfrage.Speichersperre.Release();
+        }
     }
 
     private void PruefeEingabe(string text)

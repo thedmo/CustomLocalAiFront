@@ -29,6 +29,27 @@ public sealed class Antwort
 
     public string? Grund { get; private set; }
 
+    /// <summary>Rekonstruiert einen gespeicherten Zustand ohne neue Zustandsübergänge.</summary>
+    public static Antwort Wiederherstellen(
+        Guid id, string text, AntwortZustand zustand,
+        TimeSpan? dauer, Stoerfall? fall, string? grund)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (!Enum.IsDefined(zustand))
+        {
+            throw new ArgumentOutOfRangeException(nameof(zustand));
+        }
+
+        return new Antwort(id)
+        {
+            Text = text,
+            Zustand = zustand,
+            Dauer = dauer,
+            Fall = fall,
+            Grund = grund
+        };
+    }
+
     public void FuegeTeilHinzu(string teil)
     {
         ArgumentException.ThrowIfNullOrEmpty(teil);

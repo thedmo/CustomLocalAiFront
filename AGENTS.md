@@ -14,6 +14,7 @@ Wir bauen einen lokal betriebenen KI-Chat für die HFU Uster: Chat-Seite im Brow
 - Stack: .NET 10 LTS, ASP.NET Core mit Blazor Interactive Server (C#, Razor, HTML, CSS), Entity Framework Core mit SQLite, xUnit. Massgeblich sind `global.json` und die `.csproj`-Dateien, nicht das Gedächtnis des Werkzeugs. Aktuelle APIs werden nachgeschlagen, nicht erinnert.
 - Anwendungen: Docker Desktop mit Model Runner, .NET SDK, Git, Visual Studio 2022 oder Visual Studio Code mit C# Dev Kit [AP06: eine Umgebung für alle drei festlegen], Browser Edge oder Chrome für die Chat-Seite. Das KI-Werkzeug läuft im Repository-Ordner mit denselben Rechten wie die Person, die es bedient.
 - Erlaubte Befehle: `dotnet build`, `dotnet test`, `dotnet format`, `dotnet run`, `docker compose up` und `down`, `git status`, `git diff`, `git add <Pfad>`, `git commit`. Andere Werkzeuge nur nach Eintrag hier.
+- Für AP09a durch PS am 23.09.2026 freigegeben: `dotnet tool restore` und `dotnet ef migrations add Initial --project src/Chat.Store.Sqlite --output-dir Migrationen`; nur Migrationserzeugung, kein Zugriff auf produktive Daten.
 - Sprache: Deutsch mit ss statt Eszett. Fachbegriffe aus dem Glossar des Konzepts (Unterhaltung, Nachricht, Antwort, Störfall), technische Begriffe englisch (Service, Client, Store). Einzelheiten im `agent/StylingGuide.md`.
 
 ## 3. Ablage und Namen
