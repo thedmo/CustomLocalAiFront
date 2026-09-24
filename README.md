@@ -4,6 +4,35 @@ Prototyp eines lokal betriebenen KI-Chats (Browser-Frontend, eigenes Backend, lo
 
 Dieses Verzeichnis ist der Vorschlag für die Wurzel des Repositorys (Arbeitspaket AP06). Zusammengeführt aus zwei Entwürfen (Rod mit Claude, Pascal mit seinem Werkzeug), siehe unten. Alles ist Entwurf, bis die Gruppe es in AP06 gelesen, geändert und freigegeben hat (erste Zeile im Reviewprotokoll).
 
+## Start
+
+### Voraussetzungen (Windows)
+
+- Docker Engine & Docker Desktop
+- Model Runner in den Docker Desktop Settings aktiviert
+- Python (für das Setup-Skript)
+- .NET 10 SDK (nur für lokales debugging)
+
+### Installationsanleitung
+
+1. `python install_environment.py` ausführen (erstellt `.env` aus `.env.example` und lädt das Modell über den Model Runner).
+2. `docker compose build` ausführen, um den Container zu bauen.
+3. `docker compose up -d` ausführen, um den Stack im Hintergrund zu starten.
+
+### Entwicklung & Debugging (Blazor-App mit Debugger starten)
+
+Um die Blazor-Anwendung mit dem Debugger (z. B. in Visual Studio Code oder Visual Studio) zu starten:
+
+1. `python install_environment.py -d` ausführen (kopiert enironment variablen in host environment)
+2. Drücken Sie in VS Code **F5** (nutzt das `https`-Profil aus `src/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`).
+3. Alternativ können Sie die Anwendung per Terminal im Entwicklungsmodus starten:
+   ```bash
+   cd src/LocalAiFront
+   dotnet run
+   ```
+
+
+
 ## Verbindliche Regeln
 
 | Datei                                          | Zweck                                                                                                                                             | Pflicht aus       |
@@ -64,41 +93,3 @@ Wer wann was tut, als Bild und Sequenz: `agent/Ablauf.md`.
 
 Abhängigkeiten zeigen nur nach unten: Die Blazor-Komponenten kennen ausschliesslich `Chat.Core`. Der Composition Root in `Program.cs` verdrahtet `ChatService`, Model-Runner-Adapter und `SqliteStore`. Jede Store-Operation verwendet einen eigenen kurzlebigen DbContext.
 
-## Start
-
-### Voraussetzungen (Windows)
-
-- Docker Engine & Docker Desktop
-- Model Runner in den Docker Desktop Settings aktiviert
-- Python (für das Setup-Skript)
-- .NET 10 SDK (nur für lokales debugging)
-
-### Installationsanleitung
-
-1. `python install_environment.py` ausführen (erstellt `.env` aus `.env.example` und lädt das Modell über den Model Runner).
-2. `docker compose build` ausführen, um den Container zu bauen.
-3. `docker compose up -d` ausführen, um den Stack im Hintergrund zu starten.
-
-### Entwicklung & Debugging (Blazor-App mit Debugger starten)
-
-Um die Blazor-Anwendung mit dem Debugger (z. B. in Visual Studio Code oder Visual Studio) zu starten:
-
-1. `python install_environment.py -d` ausführen (kopiert enironment variablen in host environment)
-2. Drücken Sie in VS Code **F5** (nutzt das `https`-Profil aus `src/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`).
-3. Alternativ können Sie die Anwendung per Terminal im Entwicklungsmodus starten:
-   ```bash
-   cd src/LocalAiFront
-   dotnet run
-   ```
-
-## Zusammenführung der zwei Entwürfe
-
-Aus Pascals `Agent_Setup` übernommen: das Antwortmuster des Werkzeugs (jetzt `AGENTS.md` Abschnitt 9), das Übergabeformat mit Kontrollkästchen (in `agent/Use_Case_Karte_Vorlage.md`), die Review-Checkliste als eigene Datei, die Schnittstellen-Datei, das Abbruchkriterium "sicherheitsrelevante Auswirkungen nicht beurteilbar", die Regel "Verständlichkeit vor Raffinesse". Ersetzt: die allgemeinen Guidelines durch den StylingGuide mit C#-, Razor-, HTML- und CSS-Regeln (Folie 11 verlangt Regeln je Sprache); Dateinamen nach den Kursunterlagen (`agent/StylingGuide.md`) statt Grossbuchstaben. Ergänzt: Umgebung und erlaubte Befehle, Namenskonvention, Git-Regeln, Test- und Reviewprotokoll mit den neun Pflichtfeldern, KI-Einsatz, Drittkomponenten, Bezug auf Konzeptkapitel und Störfälle. Der Ordner `Agent_Setup` kann nach der Abnahme in AP06 gelöscht werden; hier steht die zusammengeführte Fassung.
-
-## Was in AP06 zu tun ist (eine Stunde zu dritt)
-
-1. `AGENTS.md`, `agent/StylingGuide.md`, `agent/DoR_DoD.md`, `agent/Ablauf.md` laut lesen, ändern, freigeben. Erste Zeile im Reviewprotokoll: das Gerüst selbst.
-2. .NET-Version festlegen (`global.json`), Lösung und Projektgerüste anlegen, `dotnet build` grün.
-3. `docker_compose.yml` mit Anwendung und direkter Model-Runner-Anbindung; `appsettings.example.json` gegen Konzept 7.4 prüfen.
-4. Erste Karte nach `agent/Use_Case_Karte_Vorlage.md` anlegen: AP07 Backend senden (F01, F07).
-5. Konzept Kapitel 15: ein Absatz, der auf diese Dateien zeigt.
