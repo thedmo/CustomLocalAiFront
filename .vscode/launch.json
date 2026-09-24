@@ -12,7 +12,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "http://localhost:5288"
       },
-      "preLaunchTask": "prepare LocalAiFront debugging",
+      "preLaunchTask": "build LocalAiFront",
       "serverReadyAction": {
         "action": "openExternally",
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)"

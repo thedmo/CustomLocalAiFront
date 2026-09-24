@@ -71,7 +71,7 @@ Abhängigkeiten zeigen nur nach unten: Die Blazor-Komponenten kennen ausschliess
 Voraussetzungen: .NET 10 SDK und Docker Desktop mit aktiviertem Docker Model Runner. Das Modell wird vor dem Offlinebetrieb lokal geladen.
 
 ```
-python install_environment.py          # einmalig: appsettings.Development.json anlegen, Modell laden
+python install_environment.py -d         # einmalig: appsettings.Development.json anlegen, Modell laden
 ```
 
 Danach in VS Code **F5** drücken (nutzt das `https`-Profil aus `src/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`) oder:
@@ -90,9 +90,8 @@ Jeder neue Seitenstart zeigt einen leeren lokalen Entwurf und zusätzlich die ge
 ### Produktion / gesamter Stack (Docker)
 
 ```
-docker compose -f docker_compose.yml up      Anwendung; Docker Desktop stellt den Model Runner bereit und startet diesen.
-dotnet test                                  alle Tests
-dotnet format                                Formatierung nach .editorconfig
+python install_environment.py # einmalig: appsettings.Development.json anlegen, Modell laden
+docker compose up             # Anwendung; Docker Desktop stellt den Model Runner bereit und startet diesen.
 ```
 
 Die Anwendung ist danach unter `http://localhost:80` erreichbar. Docker Compose übergibt die Model-Runner-Adresse direkt an die Anwendung. Das zu ladende Modell wird zentral in `.env` über `MODEL_NAME` festgelegt (Vorlage: `.env.example`).

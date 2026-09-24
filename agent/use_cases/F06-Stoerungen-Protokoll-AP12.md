@@ -60,7 +60,7 @@ Die bestehende Schnittstelle `IChatService` wird unveraendert verwendet. Die UI 
 - Automatisiert neu, in AP11 als T13 bis T15 zu nummerieren:
   - leeres Eingabefeld zeigt den Hinweis am deaktivierten Senden-Bereich und ruft den Service nicht auf;
   - Zeichenzaehler startet mit `0/4000`, zaehlt bei Eingabe korrekt hoch und begrenzt die Eingabe bei 4000 Zeichen;
-  - Stoerfallmeldung gibt die Eingabe frei und 
+  - Stoerfallmeldung gibt die Eingabe frei und zeigt den roten Statuspunkt mit dem Status `Stoerung`.
 - Manuell: im Browser leeres Feld per Maus und Tastatur fokussieren, Zaehler bis zur Grenze pruefen, Modellserver stoppen und nach einer Stoerungsmeldung eine weitere Eingabe senden. Erwartetes und tatsaechliches Ergebnis in `agent/protokolle/Test_und_Reviewprotokoll.md` eintragen.
 - N05 wird nicht als umzusetzender Logtest ausgefuehrt, weil F08/Z07 gemaess Auftrag nur informativ bleiben.
 
@@ -80,30 +80,65 @@ Karte: AP12 Stoerungen erkennen, melden und Eingabehinweise anzeigen
 
 Umgesetzt:
 
-- [ ] ...
+- [x] Deaktivierter Senden-Bereich zeigt bei leerer oder zu langer Eingabe einen per `aria-describedby` zugeordneten Hinweis und ist per Tastatur fokussierbar.
+- [x] Eingabefeld verwendet ausschliesslich die Grenze 4000; Zaehler zeigt `aktuell/4000` und wird bei jeder Eingabe aktualisiert.
+- [x] Statuspunkt ist nur bei `Bereit` gruen und waehrend Anfrage, Abbruchaufbau oder Stoerung rot; der Textstatus bleibt erhalten.
+- [x] Alle vier bestehenden `StoerfallException`-Gruende werden angezeigt; Eingabefeld und Senden sind danach wieder bedienbar.
+- [x] T13 bis T15 sind in `agent/Testfaelle.md` dokumentiert und als Komponententests umgesetzt.
 
 Geaenderte Dateien:
 
-- [ ] ...
+- [x] `src/LocalAiFront/Components/Pages/Home.razor`
+- [x] `src/LocalAiFront/Components/Pages/Home.razor.css`
+- [x] `tests/Chat.Tests/ChatSeiteTests.cs`
+- [x] `agent/Testfaelle.md`
+- [x] `agent/use_cases/F06-Stoerungen-Protokoll-AP12.md`
+- [x] `agent/protokolle/KI-Einsatz.md`
 
 Nicht angefasst (bewusst):
 
-- [ ] Technische Protokollierung, Modellserver, Store-Vertrag und Konfiguration ausserhalb der bestehenden Eingabegrenze.
+- [x] Technische Protokollierung, Modellserver, Store-Vertrag und Konfiguration ausserhalb der bestehenden Eingabegrenze.
+- [x] `src/Chat.Core`, `src/Chat.Adapter.ModelRunner`, `src/Chat.Store.Sqlite`, `docker_compose.yml`, `appsettings*.json` und `global.json`.
 
 Pruefungen:
 
-- `dotnet build`: [ ]
-- `dotnet test`: [ ]
-- `dotnet format`: [ ]
-- Manuelle Browserpruefung: [ ]
+- `dotnet build`: OK, mit `--no-restore --disable-build-servers -m:1`, 0 Warnungen und 0 Fehler. Der Standardaufruf brach zuvor beim parallelen Restore beziehungsweise Auswerten der Projektreferenzen ohne gemeldeten Codefehler ab.
+- `dotnet test`: 71 bestanden, 0 fehlgeschlagen, 1 vorhandener expliziter Modellserver-Integrationstest nicht ausgefuehrt.
+- `dotnet format`: geaenderte C#-Testdatei formatiert und gezielt ohne weitere Aenderung verifiziert. Die globale Pruefung bleibt wegen vorbestehender CRLF-Zeilenenden in nicht betroffenen Dateien rot; diese wurden gemaess Kartenabgrenzung nicht geaendert.
+- Manuelle Browserpruefung: offen; in der Computersteuerung war kein Browser verfuegbar und der direkte Anwendungsstart benoetigt eine nicht vorhandene lokale Datenbankkonfiguration. Erwartete Pruefung durch PS: Hinweis per Maus und Tastatur, Zaehler bis 4000, beide Fensterbreiten und erneutes Senden nach gestopptem Modellserver.
 
 Selbstpruefung (`agent/Review_Checkliste.md`):
 
-- [ ] Eingabehinweise, Stoerfaelle, Bedienbarkeit, Schichtgrenzen und Datenschutz geprueft.
+- [x] Fachlichkeit: entspricht Karte, F06 und M09; Akzeptanzkriterien automatisiert abgedeckt, keine fachliche Erweiterung.
+- [x] Namen und Fachbegriffe: StylingGuide eingehalten; deutsche UI-Texte und Bezeichner ohne Umlaute verwendet.
+- [x] Schichtgrenzen: Seite verwendet weiterhin ausschliesslich `IChatService`; keine Backend-, Adapter- oder Store-Aenderung.
+- [x] Verstaendlichkeit: Eingabegrenze und Hinweisermittlung sind lokal und ohne verschachtelte ternaere Ausdruecke umgesetzt.
+- [x] Format und Kommentare: geaenderte C#-Datei gezielt formatkonform; keine Duplikate, keine unnoetigen Kommentare oder auskommentierter Code.
+- [x] Vier Stoerfaelle: alle vier Gruende werden im Komponententest geprueft und die Eingabe danach freigegeben.
+- [x] Abbruch: bestehendes Verhalten und Teilantwort bleiben unveraendert; Regressionstest gruen.
+- [x] Eingabegrenzen: leer und ueber 4000 werden vor dem Service-Aufruf abgewiesen; `maxlength` und Zaehler verwenden 4000.
+- [x] Zustandsuebergaenge: nicht geaendert; bestehende Tests gruen.
+- [x] Umfang: Diff auf die in der Karte genannten UI-, Test- und Dokumentationsdateien begrenzt.
+- [x] Schnittstellen: `IChatService`, `IStore` und `IModelServerClient` unveraendert.
+- [x] Konfiguration und Installation: keine Aenderung; `appsettings.example.json` und README unberuehrt.
+- [x] Geheimnisse und Datenschutz: keine Geheimnisse, persoenlichen Daten, Pfade oder Chatinhalte ergaenzt.
+- [x] Netzwerk und Modellwerkzeuge: kein neuer Netzwerkzugriff und keine ausfuehrbaren Werkzeuge.
+- [x] Abhaengigkeiten: keine neue Bibliothek oder Drittkomponente.
+- [x] Systemanweisung und Eingabe: Trennung unveraendert; UI- und Service-Grenzpruefung bleiben aktiv.
+- [x] Semantik und Barrierearmut: sichtbares `label`, `aria-describedby`, `role="tooltip"`, Tastaturfokus und bestehende Live-Regionen vorhanden.
+- [x] Corporate Design: ausschliesslich vorhandene CSS-Variablen verwendet; Status hat Farbe und Text.
+- [ ] Beide Fensterbreiten: CSS-Regeln geprueft, visuelle Browserpruefung durch PS noch offen.
+- [x] Automatisierte Tests: 71 bestanden, 0 fehlgeschlagen; neue Logik durch T13 bis T15 abgedeckt.
+- [ ] Manuelle Tests und Protokoll: durch PS nach dieser Uebergabe auszufuehren und in `Test_und_Reviewprotokoll.md` einzutragen.
+- [x] Einschraenkungen: Browserpruefung, globale CRLF-Formatabweichung und F08/Z07 sind hier dokumentiert.
+- [x] KI-Einsatz: Eintrag fuer AP12 in `agent/protokolle/KI-Einsatz.md` ergaenzt.
+- [ ] Commit und Freigabe: stehen aus; Review muss durch ein Gruppenmitglied erfolgen.
 
 Offen, Risiken, Befunde ausserhalb der Karte:
 
 - F08/Z07 bleiben informativ; ein technisches Protokoll benoetigt eine spaetere eigene Freigabe.
+- Der normale parallele Solution-Build brach in dieser Umgebung ohne Diagnose ab; der sequenzielle Solution-Build war vollstaendig gruen.
+- Repositoryweite Formatpruefung meldet vorbestehende CRLF-Zeilenenden ausserhalb des Kartenumfangs.
 - Review und Freigabe nach Umsetzung durch ein Gruppenmitglied stehen aus.
 
-Vorschlag Commit-Nachricht: `AP12: Stoerungen und Eingabehinweise zeigen` / `KI: GitHub Copilot, geprueft von PS`
+Vorschlag Commit-Nachricht: `AP12: Stoerungen und Eingabehinweise zeigen` / `KI: Codex, geprueft von PS`

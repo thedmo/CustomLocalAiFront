@@ -10,24 +10,6 @@
         "${workspaceFolder}/src/LocalAiFront/LocalAiFront.csproj"
       ],
       "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "validate .env",
-      "type": "process",
-      "command": "python",
-      "args": [
-        "${workspaceFolder}/prepare_environment.py"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "prepare LocalAiFront debugging",
-      "dependsOn": [
-        "build LocalAiFront",
-        "validate .env"
-      ],
-      "dependsOrder": "sequence",
-      "problemMatcher": []
     }
   ]
 }

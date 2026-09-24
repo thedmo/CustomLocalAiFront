@@ -26,6 +26,7 @@ public sealed class ChatSeiteTests
             Assert.Contains("Teil 1", seite.Markup);
             Assert.True(seite.Find("#nachricht").HasAttribute("disabled"));
             Assert.NotNull(seite.Find("#abbrechen"));
+            Assert.Contains("chat-statuspunkt--nicht-bereit", seite.Find(".chat-statuspunkt").ClassList);
         });
 
         await service.LiefereTeilAsync(" Teil 2");
@@ -36,6 +37,7 @@ public sealed class ChatSeiteTests
         Assert.False(seite.Find("#nachricht").HasAttribute("disabled"));
         Assert.Empty(seite.FindAll("#abbrechen"));
         Assert.Contains("Bereit", seite.Find("#chat-status").TextContent);
+        Assert.Contains("chat-statuspunkt--bereit", seite.Find(".chat-statuspunkt").ClassList);
     }
 
     [Fact]
@@ -65,14 +67,16 @@ public sealed class ChatSeiteTests
         Assert.Contains("Nächste Frage", seite.Markup);
     }
 
-    [Fact]
-    public async Task Stoerfall_ZeigtGrundUndGibtEingabeFrei()
+    [Theory]
+    [InlineData(Stoerfall.ModellserverNichtErreichbar, "Modellserver nicht erreichbar")]
+    [InlineData(Stoerfall.ModellUnbekannt, "Modell unbekannt")]
+    [InlineData(Stoerfall.KonfigurationUngueltig, "Konfiguration ungültig")]
+    [InlineData(Stoerfall.Zeitueberschreitung, "Zeitüberschreitung")]
+    public async Task Stoerfall_ZeigtGrundUndGibtEingabeFrei(Stoerfall fall, string grund)
     {
         FakeChatService service = new()
         {
-            SendeAusnahme = new StoerfallException(
-                Stoerfall.ModellserverNichtErreichbar,
-                "Modellserver nicht erreichbar")
+            SendeAusnahme = new StoerfallException(fall, grund)
         };
         await using BunitContext context = ErzeugeKontext(service);
         IRenderedComponent<Home> seite = context.Render<Home>();
@@ -80,8 +84,9 @@ public sealed class ChatSeiteTests
 
         await seite.Find("#senden").ClickAsync(new MouseEventArgs());
 
-        Assert.Contains("Modellserver nicht erreichbar", seite.Find("[role=alert]").TextContent);
+        Assert.Contains(grund, seite.Find("[role=alert]").TextContent);
         Assert.False(seite.Find("#nachricht").HasAttribute("disabled"));
+        Assert.False(seite.Find("#senden").HasAttribute("disabled"));
         Assert.Contains("Störung", seite.Find("#chat-status").TextContent);
         Assert.Contains("chat-statuspunkt--nicht-bereit", seite.Find(".chat-statuspunkt").ClassList);
         Assert.Empty(service.Unterhaltungen);
@@ -117,18 +122,55 @@ public sealed class ChatSeiteTests
     }
 
     [Fact]
-    public async Task LeereEingabe_RuftServiceNichtAuf()
+    public async Task LeereEingabe_ZeigtZugeordnetenHinweisUndRuftServiceNichtAuf()
     {
         FakeChatService service = new();
         await using BunitContext context = ErzeugeKontext(service);
         IRenderedComponent<Home> seite = context.Render<Home>();
 
         AngleSharp.Dom.IElement senden = seite.Find("#senden");
+        AngleSharp.Dom.IElement sendenBereich = seite.Find(".senden-bereich");
         Assert.True(senden.HasAttribute("disabled"));
         Assert.Equal("Nachricht senden", senden.GetAttribute("aria-label"));
         Assert.Empty(senden.TextContent.Trim());
-        Assert.Contains("chat-eingabefeld", senden.ParentElement!.ClassList);
+        Assert.Equal("0", sendenBereich.GetAttribute("tabindex"));
+        Assert.Equal("senden-hinweis", sendenBereich.GetAttribute("aria-describedby"));
+        Assert.Equal("Bitte erst Nachricht eingeben.", seite.Find("#senden-hinweis").TextContent);
         Assert.Contains("chat-statuspunkt--bereit", seite.Find(".chat-statuspunkt").ClassList);
+        Assert.Equal(0, service.SendeAufrufe);
+    }
+
+    [Fact]
+    public async Task Eingabe_ZaehltZeichenUndBegrenztBei4000Zeichen()
+    {
+        FakeChatService service = new();
+        await using BunitContext context = ErzeugeKontext(service);
+        IRenderedComponent<Home> seite = context.Render<Home>();
+        AngleSharp.Dom.IElement eingabe = seite.Find("#nachricht");
+
+        Assert.Equal("4000", eingabe.GetAttribute("maxlength"));
+        Assert.Contains("zeichenzaehler", eingabe.GetAttribute("aria-describedby"));
+        Assert.Equal("0/4000", seite.Find("#zeichenzaehler").TextContent.Trim());
+
+        eingabe.Input("A");
+        Assert.Equal("1/4000", seite.Find("#zeichenzaehler").TextContent.Trim());
+
+        eingabe.Input(new string('A', 4000));
+        Assert.Equal("4000/4000", seite.Find("#zeichenzaehler").TextContent.Trim());
+        Assert.False(seite.Find("#senden").HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public async Task ZuLangeEingabe_ZeigtHinweisUndRuftServiceNichtAuf()
+    {
+        FakeChatService service = new();
+        await using BunitContext context = ErzeugeKontext(service);
+        IRenderedComponent<Home> seite = context.Render<Home>();
+
+        seite.Find("#nachricht").Input(new string('A', 4001));
+
+        Assert.True(seite.Find("#senden").HasAttribute("disabled"));
+        Assert.Contains("4000 Zeichen", seite.Find("#senden-hinweis").TextContent);
         Assert.Equal(0, service.SendeAufrufe);
     }
 

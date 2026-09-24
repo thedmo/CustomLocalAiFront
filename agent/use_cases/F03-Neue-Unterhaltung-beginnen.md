@@ -121,3 +121,53 @@ Offen, Risiken, Befunde ausserhalb der Karte:
 - Ein Gruppenmitglied übernimmt die Präzisierung in das Masterkonzept und den Änderungsnachweis 14.3 und führt das unabhängige Review durch.
 
 Vorschlag Commit-Nachricht: `F03: Unterhaltung erst mit erster Nachricht speichern` / `KI: Codex, geprueft von XX`.
+
+### Bericht zur Darstellung des gesperrten Buttons vom 24.09.2026
+
+Karte: F03 Neue Unterhaltung beginnen
+
+Umgesetzt:
+
+- Der gesperrte Button „Neue Unterhaltung“ verwendet während des Sendens oder Ladens das helle HFU-Rosa statt des Bootstrap-Blaus.
+- Gedeckte Schrift, neutraler Rahmen und reduzierte Deckkraft kennzeichnen den Button weiterhin als nicht bedienbar.
+
+Geänderte Dateien:
+
+- `src/LocalAiFront/Components/Pages/Home.razor.css`
+- `agent/use_cases/F03-Neue-Unterhaltung-beginnen.md`
+- `agent/protokolle/KI-Einsatz.md`
+
+Nicht angefasst (bewusst):
+
+- `Home.razor` mit einer bereits vorhandenen fremden Änderung, Streaming- und Abbruchlogik, andere Schichten, Konfiguration und Tests.
+
+Prüfungen:
+
+- `dotnet build CustomLocalAiFront.slnx --no-restore --disable-build-servers -m:1`: OK, 0 Warnungen, 0 Fehler.
+- `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 71 bestanden, 0 fehlgeschlagen, 1 vorhandener expliziter Modellserver-Test nicht ausgeführt.
+- `dotnet format CustomLocalAiFront.slnx --no-restore --verify-no-changes`: Fehler wegen bereits vorhandener CRLF-Zeilenenden in unveränderten C#- und Testdateien; diese Dateien wurden ausserhalb des Kartenumfangs nicht geändert.
+- `git diff --check`: keine Whitespace-Fehler; Git weist lediglich auf die lokale LF-zu-CRLF-Konvertierung der geänderten CSS-Datei hin.
+
+Selbstprüfung (`agent/Review_Checkliste.md`), Punkt für Punkt:
+
+| Punkt | Ergebnis und Grund |
+| --- | --- |
+| Fachlichkeit, Akzeptanzkriterien, Umfang | Ja; nur der beauftragte Disabled-Zustand wurde geändert, ohne neue Fachfunktion. |
+| Namen, Schichtgrenzen, Verständlichkeit | Ja; ein eindeutiger CSS-Selektor betrifft nur den vorhandenen Button. |
+| Format, Duplikate, Kommentare | Nein für die globale Formatprüfung wegen vorhandener Zeilenenden in unveränderten Dateien; der eigene CSS-Diff enthält keine Whitespace-Fehler und keine Duplikation. |
+| Fehlerbehandlung und Grenzfälle | Ja; keine Logik oder Fehlerbehandlung geändert. |
+| Auswirkungen, Schnittstellen, Konfiguration | Ja; Schnittstellen und Konfiguration unverändert. |
+| Geheimnisse, Netzwerk, Abhängigkeiten, Eingabetrennung | Ja; keine Daten, Netzwerkpfade oder Abhängigkeiten ergänzt. |
+| Semantik und Tastatur | Ja hinsichtlich Code; echtes `disabled` bleibt unverändert erhalten. |
+| Gestaltung und Fensterbreiten | Ja hinsichtlich CSS-Variablen und responsivem Verhalten; manuelle Sichtprüfung beider Fensterbreiten offen. |
+| Automatisierte Tests und neue Logik | Ja; 71 Tests bestanden, keine neue Logik, daher kein neuer Test erforderlich. |
+| Manuelle Tests und Einschränkungen | Nein; Browser-Sichtprüfung ist noch offen. |
+| Nachvollziehbarkeit und Commit | Ja; Karte und KI-Einsatz sind dokumentiert, Commit und menschliches Review offen. |
+
+Offen, Risiken, Befunde ausserhalb der Karte:
+
+- PS prüft den Disabled-Zustand während der Antwortgenerierung im Browser bei beiden Fensterbreiten.
+- Die vorhandenen CRLF-Zeilenenden verhindern derzeit eine grüne globale Formatprüfung und müssen in einer eigenen freigegebenen Änderung bereinigt werden.
+- Menschliches Review und Freigabe bleiben offen.
+
+Vorschlag Commit-Nachricht: `F03: Gesperrten Neue-Unterhaltung-Button rosa darstellen` / `KI: Codex, geprueft von XX`.
