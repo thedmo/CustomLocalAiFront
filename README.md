@@ -66,35 +66,30 @@ Abhängigkeiten zeigen nur nach unten: Die Blazor-Komponenten kennen ausschliess
 
 ## Start
 
-### Entwicklung / Debugging (lokal, ausserhalb Docker)
+### Voraussetzungen (Windows)
 
-Voraussetzungen: .NET 10 SDK und Docker Desktop mit aktiviertem Docker Model Runner. Das Modell wird vor dem Offlinebetrieb lokal geladen.
+- Docker Engine & Docker Desktop
+- Model Runner in den Docker Desktop Settings aktiviert
+- Python (für das Setup-Skript)
+- .NET 10 SDK (nur für lokales debugging)
 
-```
-python install_environment.py -d         # einmalig: appsettings.Development.json anlegen, Modell laden
-```
+### Installationsanleitung
 
-Danach in VS Code **F5** drücken (nutzt das `https`-Profil aus `src/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`) oder:
+1. `python install_environment.py` ausführen (erstellt `.env` aus `.env.example` und lädt das Modell über den Model Runner).
+2. `docker compose build` ausführen, um den Container zu bauen.
+3. `docker compose up -d` ausführen, um den Stack im Hintergrund zu starten.
 
-```
-cd src/LocalAiFront
-dotnet run
-```
+### Entwicklung & Debugging (Blazor-App mit Debugger starten)
 
-`Chat:SpeicherortDb` muss einen beschreibbaren Dateipfad enthalten. Für den lokalen Start kann in PowerShell vor `dotnet run` beispielsweise `$env:Chat__SpeicherortDb = './data/chat.db'` gesetzt werden. Relative Pfade beziehen sich auf das Arbeitsverzeichnis der Anwendung. Docker Compose übergibt ausdrücklich `Chat__SpeicherortDb=/app/data/chat.db`; das bestehende Verzeichnis-Mount bleibt erhalten. `appsettings.example.json` ist nur eine Vorlage und wird nicht automatisch geladen. Eine fehlende oder unbrauchbare Pfadangabe führt zu einem Startfehler.
+Um die Blazor-Anwendung mit dem Debugger (z. B. in Visual Studio Code oder Visual Studio) zu starten:
 
-Beim ersten Start wird das Datenbankverzeichnis angelegt und die mitgelieferte Migration angewendet. Es ist kein separater Datenbankserver und kein manuelles `database update` nötig. Vor Annahme von Benutzeranfragen werden gespeicherte Antworten in Angefordert oder Laeuft auf Gestoert mit Grund «Neustart» gesetzt; vorhandener Text bleibt erhalten. Empfangene Antwortteile werden bereits während der Ausgabe gespeichert.
-
-Jeder neue Seitenstart zeigt einen leeren lokalen Entwurf und zusätzlich die gespeicherten Unterhaltungen mit Titel und Datum, neueste zuerst. Der Entwurf erscheint erst mit der ersten gesendeten Nachricht in der Liste und in SQLite; blosses Laden der Seite oder „Neue Unterhaltung“ erzeugt keinen Datensatz. Auswahl lädt den gespeicherten Verlauf; Auflisten und Öffnen benötigen keinen erreichbaren Modellserver. Prerendering ist für die Chat-Seite deaktiviert.
-
-### Produktion / gesamter Stack (Docker)
-
-```
-python install_environment.py # einmalig: appsettings.Development.json anlegen, Modell laden
-docker compose up             # Anwendung; Docker Desktop stellt den Model Runner bereit und startet diesen.
-```
-
-Die Anwendung ist danach unter `http://localhost:80` erreichbar. Docker Compose übergibt die Model-Runner-Adresse direkt an die Anwendung. Das zu ladende Modell wird zentral in `.env` über `MODEL_NAME` festgelegt (Vorlage: `.env.example`).
+1. `python install_environment.py -d` ausführen (kopiert enironment variablen in host environment)
+2. Drücken Sie in VS Code **F5** (nutzt das `https`-Profil aus `src/LocalAiFront/Properties/launchSettings.json`, Umgebung `Development`).
+3. Alternativ können Sie die Anwendung per Terminal im Entwicklungsmodus starten:
+   ```bash
+   cd src/LocalAiFront
+   dotnet run
+   ```
 
 ## Zusammenführung der zwei Entwürfe
 
