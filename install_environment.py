@@ -57,14 +57,13 @@ def load_environment_variables(env_file: Path = ENV_FILE) -> dict[str, str]:
         if key:
             os.environ[key] = value
             loaded[key] = value
-            print(f"      - {key}={value}")
 
     print(f"[2/3] {len(loaded)} Umgebungsvariablen wurden gesetzt.")
     return loaded
 
 
 def read_model_name(env_file: Path = ENV_FILE) -> str:
-    print(f"[3/3] Lese MODEL_NAME aus {env_file.name}.")
+    print(f"[3/3] Lese MODEL_NAME")
 
     if not env_file.exists():
         raise SystemExit("Keine .env gefunden. Bitte zuerst .env.example nach .env kopieren.")
@@ -98,7 +97,7 @@ def main() -> None:
         "-d",
         "--debug",
         action="store_true",
-        help="Laedt alle .env-Variablen in die Laufzeitumgebung, ohne appsettings zu erzeugen.",
+        help="Laedt alle .env-Variablen in die Laufzeitumgebung.",
     )
     args = parser.parse_args()
 
