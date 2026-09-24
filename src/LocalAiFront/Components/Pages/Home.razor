@@ -72,7 +72,7 @@
             <section id="chat-verlauf" class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite" @ref="_chatVerlaufRef">
                 @if (_eintraege.Count == 0)
                 {
-                    <p class="text-secondary">Stelle deine erste Frage.</p>
+                    <p class="text-secondary">Womit kann ich dich unterstützen?</p>
                 }
 
                 @foreach (ChatEintrag eintrag in _eintraege)
@@ -89,17 +89,30 @@
             </section>
 
             <div class="chat-eingabe">
+                <div class="chat-eingabe-info">
+                    <label for="nachricht">Nachricht</label>
+                    <span id="zeichenzaehler" aria-label="@($"{_eingabe.Length} von {Eingabegrenze} Zeichen")">
+                        @_eingabe.Length/@Eingabegrenze
+                    </span>
+                </div>
                 <div class="chat-eingabefeld">
-                    <textarea id="nachricht" class="form-control" rows="3" maxlength="4001" placeholder="Nachricht eingeben …"
-                              aria-describedby="chat-status" @bind="_eingabe" @bind:event="oninput"
+                    <textarea id="nachricht" class="form-control" rows="3" maxlength="@Eingabegrenze" placeholder="Nachricht eingeben …"
+                              aria-describedby="zeichenzaehler chat-status" @bind="_eingabe" @bind:event="oninput"
                               disabled="@(_sendet || _laedt)"></textarea>
-                    <button id="senden" type="button" class="senden-button" aria-label="Nachricht senden"
-                            title="Nachricht senden" @onclick="SendeAsync"
-                            disabled="@(_sendet || _laedt || string.IsNullOrWhiteSpace(_eingabe))">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 19V5M5 12l7-7 7 7" />
-                        </svg>
-                    </button>
+                    <span class="senden-bereich" tabindex="@(Eingabehinweis is not null ? "0" : null)"
+                          aria-describedby="@(Eingabehinweis is not null ? "senden-hinweis" : null)">
+                        <button id="senden" type="button" class="senden-button" aria-label="Nachricht senden"
+                                title="@(Eingabehinweis ?? "Nachricht senden")"
+                                @onclick="SendeAsync" disabled="@(_sendet || _laedt || Eingabehinweis is not null)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 19V5M5 12l7-7 7 7" />
+                            </svg>
+                        </button>
+                        @if (Eingabehinweis is not null)
+                        {
+                            <span id="senden-hinweis" class="senden-hinweis" role="tooltip">@Eingabehinweis</span>
+                        }
+                    </span>
                 </div>
 
                 <div class="chat-unterzeile">
@@ -123,6 +136,7 @@
 
 @code {
     private readonly CancellationTokenSource _lebenszyklus = new();
+    private const int Eingabegrenze = 4000;
     private IReadOnlyList<UnterhaltungInfo> _unterhaltungen = [];
     private readonly List<ChatEintrag> _eintraege = [];
     private Guid _unterhaltungId;
@@ -135,6 +149,20 @@
     private bool _abbruchAngefordert;
     private ElementReference _chatVerlaufRef;
     private int _letzteNachrichtenAnzahl;
+    private string? Eingabehinweis
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_eingabe))
+            {
+                return "Bitte erst Nachricht eingeben.";
+            }
+
+            return _eingabe.Length > Eingabegrenze
+                ? $"Die Nachricht darf höchstens {Eingabegrenze} Zeichen lang sein."
+                : null;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,7 +181,7 @@
 
     private async Task SendeAsync()
     {
-        if (_sendet || _laedt || string.IsNullOrWhiteSpace(_eingabe))
+        if (_sendet || _laedt || Eingabehinweis is not null)
         {
             return;
         }
