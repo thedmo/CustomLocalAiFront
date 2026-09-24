@@ -1,6 +1,6 @@
 # Umsetzungsauftrag Design: Chatoberfläche ohne Seiten-Scrollen
 
-**Status:** Zur Freigabe und Übergabe an den umsetzenden Agenten
+**Status:** Umgesetzt; manuelle Sichtprüfung und Review offen
 
 **Art:** Design- und Bedienkorrektur, kein neuer Use Case
 
@@ -95,16 +95,16 @@ Neue NuGet-Pakete, JavaScript-Bibliotheken oder externe Assets sind nicht vorges
 
 ## 6. Akzeptanzkriterien
 
-- [ ] Das Browserfenster bleibt bei allen Prüfbreiten ohne eigene Scrollbar.
-- [ ] Nachrichtenverlauf, mehrzeiliges Eingabefeld und Unterhaltungsliste scrollen bei Überlauf jeweils innerhalb ihres Bereichs.
-- [ ] Bei vielen Unterhaltungen bleiben „Neue Unterhaltung“ und die übrigen zentralen Bedienelemente erreichbar.
-- [ ] Die Message-/Hinweisbox erscheint oben und horizontal zentriert, ohne Fokusverlust oder störenden Layoutsprung.
-- [ ] Die ausgewählte Unterhaltung bleibt beim Fokussieren und Anklicken ihrer Löschbedienung sichtbar ausgewählt.
-- [ ] Fokus, Auswahl, Löschbestätigung, Fehler und deaktivierte Zustände sind voneinander unterscheidbar und nicht nur über Farbe vermittelt.
-- [ ] Löschen, Abbrechen des Löschens und ein Löschfehler behalten das bestehende fachliche Verhalten.
-- [ ] Die mobile Unterhaltungsliste lässt sich per Tastatur und Touch öffnen und schliessen.
-- [ ] Farben, Typografie und Abstände entsprechen `agent/design/CorporateDesign.md`.
-- [ ] Die Lösung benötigt keine neue Abhängigkeit und ändert keine Schnittstelle.
+- [ ] Das Browserfenster bleibt bei allen Prüfbreiten ohne eigene Scrollbar. Implementiert, Sichtprüfung offen.
+- [ ] Nachrichtenverlauf, mehrzeiliges Eingabefeld und Unterhaltungsliste scrollen bei Überlauf jeweils innerhalb ihres Bereichs. Implementiert, Sichtprüfung offen.
+- [ ] Bei vielen Unterhaltungen bleiben „Neue Unterhaltung“ und die übrigen zentralen Bedienelemente erreichbar. Implementiert, Sichtprüfung offen.
+- [ ] Die Message-/Hinweisbox erscheint oben und horizontal zentriert, ohne Fokusverlust oder störenden Layoutsprung. Implementiert, Sichtprüfung offen.
+- [x] Die ausgewählte Unterhaltung bleibt beim Fokussieren und Anklicken ihrer Löschbedienung semantisch ausgewählt; Abbruch, laufendes Löschen und Fehler sind automatisiert geprüft.
+- [ ] Fokus, Auswahl, Löschbestätigung, Fehler und deaktivierte Zustände sind voneinander unterscheidbar und nicht nur über Farbe vermittelt. Implementiert, Sichtprüfung offen.
+- [x] Löschen, Abbrechen des Löschens und ein Löschfehler behalten das bestehende fachliche Verhalten.
+- [x] Die mobile Unterhaltungsliste lässt sich öffnen und schliessen; Zustand und Bedienelemente sind automatisiert geprüft. Manuelle Tastatur- und Touchprüfung offen.
+- [ ] Farben, Typografie und Abstände entsprechen `agent/design/CorporateDesign.md`. Token umgesetzt, Sichtprüfung offen.
+- [x] Die Lösung benötigt keine neue Abhängigkeit und ändert keine Schnittstelle.
 
 ## 7. Prüfungen
 
@@ -137,34 +137,54 @@ Neue NuGet-Pakete, JavaScript-Bibliotheken oder externe Assets sind nicht vorges
 
 ## 9. Ergebnis
 
-Vom umsetzenden Agenten nach dem vorgegebenen Berichtsformat aus `AGENTS.md` auszufüllen.
-
 Karte: Design Chatoberfläche ohne Seiten-Scrollen
 
 Umgesetzt:
 
-- [auszufüllen]
+- Viewportgebundenes Flex-Layout verhindert vorgesehenes Scrollen von Seite und Browserfenster; Verlauf, Texteingabe und Unterhaltungsliste besitzen getrennte Überlaufbereiche.
+- Aktionen für neue und zu löschende Unterhaltungen bleiben ausserhalb der scrollenden Liste erreichbar.
+- Mobile Seitenleiste ist unter 800 Pixeln standardmässig geschlossen, lässt sich semantisch öffnen und schliessen und respektiert reduzierte Bewegung.
+- Status und Fehler stehen in einer stabilen, oben zentrierten Hinweisbox mit getrennten `status`- und `alert`-Semantiken.
+- Aktive Unterhaltung verwendet unabhängig vom Fokus `aria-current`, `aria-pressed` und eine eigene HFU-Auswahlklasse; Fokus bleibt über den grünen Corporate-Design-Rahmen separat sichtbar.
+- HFU-Farb- und Typografievariablen aus `agent/design/CorporateDesign.md` sind zentral in `app.css` hinterlegt und für die geänderten Elemente verwendet.
 
 Geänderte Dateien:
 
-- [auszufüllen]
+- `src/LocalAiFront/Components/Layout/MainLayout.razor.css`
+- `src/LocalAiFront/Components/Pages/Home.razor`, `Home.razor.css`, `Home.Entwurf.cs`
+- neu `src/LocalAiFront/Components/Pages/Home.Navigation.cs`, `Home.Unterhaltungen.cs`
+- `src/LocalAiFront/wwwroot/app.css`
+- `tests/Chat.Tests/ChatSeiteUnterhaltungenTests.cs`
+- `agent/protokolle/KI-Einsatz.md` und diese Datei
 
 Nicht angefasst (bewusst):
 
-- [auszufüllen]
+- Fachliche Löschregeln, `IChatService`, Store, Adapter, Datenbank, Migrationen, Konfiguration und Docker-Setup.
+- Vorhandene Logos und Bilder; das Mockup diente als Strukturreferenz, ohne ein zusätzliches Asset zu kopieren.
 
 Prüfungen:
 
-- `dotnet build`: [auszufüllen]
-- `dotnet test`: [auszufüllen]
-- `dotnet format`: [auszufüllen]
+- `dotnet build CustomLocalAiFront.slnx --no-restore --disable-build-servers -m:1`: OK, 0 Warnungen, 0 Fehler.
+- `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 66 bestanden, 0 fehlgeschlagen, 1 expliziter Integrationstest übersprungen.
+- `dotnet format` auf den betroffenen C#-Dateien: keine verbleibende Änderung.
+- `git diff --check`: OK.
+- Manuelle N03-Sichtprüfung: offen; der Computer-Use-Dienst stellte keinen Browser bereit.
 
 Selbstprüfung (`agent/Review_Checkliste.md`):
 
-- [auszufüllen]
+- Fachlichkeit und Umfang: ja; ausschliesslich freigegebene Layout-, Darstellungs- und Zustandskorrekturen.
+- Namen und Verständlichkeit: ja; deutsche Fachbegriffe, kleine Partial-Dateien und keine neue Abhängigkeit.
+- Schichtgrenzen und Schnittstellen: ja; nur Präsentationsschicht und bestehende UI-Tests geändert.
+- Fehlerbehandlung und Fachzustände: ja; bestehender Löschablauf unverändert, Regressionstests grün.
+- Konfiguration, Sicherheit und Datenschutz: ja; keine Konfigurationsänderung, externen Aufrufe, Geheimnisse oder Chatinhalte im Protokoll.
+- Semantisches HTML und Barrierefreiheit: ja im Code; echte Buttons, `aria-current`, `aria-expanded`, `status`, `alert`, Fokusdarstellung und reduzierte Bewegung. Manuelle Tastatur-, Touch- und Zoomprüfung offen.
+- Corporate Design und Fensterbreiten: Token und Breakpoint umgesetzt; visuelle N03-Prüfung bei den fünf Breiten offen.
+- Tests und Nachvollziehbarkeit: ja automatisiert; Build und 66 Tests grün, KI-Einsatz dokumentiert. Menschliches Review offen.
 
 Offen, Risiken, Befunde ausserhalb des Auftrags:
 
-- [auszufüllen]
+- N03 bei 320, 375, 768, 1024 und 1440 CSS-Pixeln sowie bei 200 Prozent Zoom manuell prüfen und im Test- und Reviewprotokoll eintragen.
+- Review und Freigabe durch ein Gruppenmitglied stehen aus; das Werkzeug gibt die Änderung nicht selbst frei.
+- Der lokale Start für die Sichtprüfung war mit temporären Testwerten erfolgreich. Da kein Browser im Computer-Use-Dienst verfügbar war, wurde der Prozess wieder beendet und keine visuelle Aussage erfunden.
 
 Vorschlag Commit-Nachricht: `Design: Chatoberfläche begrenzt Scrollbereiche` / `KI: Werkzeug, geprueft von XX`

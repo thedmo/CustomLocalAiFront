@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using Chat.Core;
 using Chat.Core.Modelle;
@@ -100,6 +101,9 @@ public sealed class ChatSeiteUnterhaltungenTests
         else
         {
             Assert.Contains("Gespeicherter Teil", seite.Find("#chat-verlauf").TextContent);
+            IElement ausgewaehlt = seite.Find("[aria-current='page']");
+            Assert.Equal(alt.Id.ToString(), ausgewaehlt.GetAttribute("data-unterhaltung-id"));
+            Assert.Contains("unterhaltungs-eintrag--aktiv", ausgewaehlt.ClassList);
         }
     }
 
@@ -123,6 +127,7 @@ public sealed class ChatSeiteUnterhaltungenTests
             {
                 Assert.True(seite.Find(selector).HasAttribute("disabled"));
             }
+            Assert.Contains("unterhaltungs-eintrag--aktiv", seite.Find("[aria-current='page']").ClassList);
         });
         freigabe.SetResult();
         await loeschen;
@@ -150,6 +155,7 @@ public sealed class ChatSeiteUnterhaltungenTests
         Assert.Contains("Gespeicherter Teil", seite.Find("#chat-verlauf").TextContent);
         Assert.True(service.Unterhaltungen.ContainsKey(alt.Id));
         Assert.False(seite.Find("#unterhaltung-loeschen").HasAttribute("disabled"));
+        Assert.Equal(alt.Id.ToString(), seite.Find("[aria-current='page']").GetAttribute("data-unterhaltung-id"));
         service.LoeschAusnahme = null;
         await seite.Find("#unterhaltung-loeschen").ClickAsync(new MouseEventArgs());
         Assert.False(service.Unterhaltungen.ContainsKey(alt.Id));
@@ -220,6 +226,27 @@ public sealed class ChatSeiteUnterhaltungenTests
         Assert.Empty(seite.FindAll("[aria-pressed='true']"));
         Assert.Equal("Gespeicherte Frage", seite.Find(".unterhaltungs-eintrag").ChildNodes[0].TextContent.Trim());
         Assert.Contains("01.01.2026", seite.Find($"[data-unterhaltung-id='{alt.Id}'] time").TextContent);
+    }
+
+    [Fact]
+    public async Task MobileSeitenleiste_StartetGeschlossenUndLaesstSichUmschalten()
+    {
+        FakeChatService service = new();
+        await using BunitContext context = Kontext(service);
+        IRenderedComponent<Home> seite = context.Render<Home>();
+
+        IElement umschalten = seite.Find("#unterhaltungen-umschalten");
+        Assert.Equal("false", umschalten.GetAttribute("aria-expanded"));
+        Assert.DoesNotContain("unterhaltungs-liste--offen", seite.Find("#unterhaltungen").ClassList);
+
+        await umschalten.ClickAsync(new MouseEventArgs());
+
+        Assert.Equal("true", seite.Find("#unterhaltungen-umschalten").GetAttribute("aria-expanded"));
+        Assert.Contains("unterhaltungs-liste--offen", seite.Find("#unterhaltungen").ClassList);
+
+        await seite.Find(".seitenleiste-schliessen").ClickAsync(new MouseEventArgs());
+
+        Assert.Equal("false", seite.Find("#unterhaltungen-umschalten").GetAttribute("aria-expanded"));
     }
 
     [Fact]

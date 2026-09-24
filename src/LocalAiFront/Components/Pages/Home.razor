@@ -11,29 +11,67 @@
 
 <div class="chat-shell">
     <div class="chat-main">
-        <aside class="unterhaltungs-liste" aria-label="Unterhaltungen">
-            @foreach (UnterhaltungInfo unterhaltung in _unterhaltungen)
-            {
-                <button type="button"
-                        class="unterhaltungs-eintrag btn @(unterhaltung.Id == _unterhaltungId ? "btn-primary" : "btn-outline-primary")"
-                        aria-pressed="@((unterhaltung.Id == _unterhaltungId).ToString().ToLowerInvariant())"
-                        data-unterhaltung-id="@unterhaltung.Id" disabled="@(_sendet || _laedt)"
-                        @onclick="() => LadeUnterhaltungAsync(unterhaltung.Id)">
-                    @unterhaltung.Titel
-                    <time class="d-block" datetime="@unterhaltung.ErstelltAm.ToString("O")">@unterhaltung.ErstelltAm.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+        <aside id="unterhaltungen" class="unterhaltungs-liste @(_seitenleisteOffen ? "unterhaltungs-liste--offen" : null)"
+               aria-label="Unterhaltungen">
+            <div class="unterhaltungs-kopf">
+                <h2>Unterhaltungen</h2>
+                <button type="button" class="seitenleiste-schliessen" aria-label="Unterhaltungen schliessen"
+                        @onclick="SchliesseSeitenleiste">
+                    <span aria-hidden="true">×</span>
                 </button>
-            }
+            </div>
 
-            <button id="neue-unterhaltung" type="button" class="btn btn-primary" disabled="@(_sendet || _laedt)" @onclick="NeueUnterhaltungAsync">
-                Neue Unterhaltung
-            </button>
-            <button id="unterhaltung-loeschen" type="button" class="btn btn-outline-danger"
-                    disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty)" @onclick="LoescheUnterhaltungAsync">
-                Ausgewählte Unterhaltung löschen
-            </button>
+            <div class="unterhaltungs-aktionen">
+                <button id="neue-unterhaltung" type="button" class="btn btn-primary" disabled="@(_sendet || _laedt)" @onclick="NeueUnterhaltungAsync">
+                    Neue Unterhaltung
+                </button>
+                <button id="unterhaltung-loeschen" type="button" class="btn btn-outline-danger"
+                        disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty)" @onclick="LoescheUnterhaltungAsync">
+                    Ausgewählte Unterhaltung löschen
+                </button>
+            </div>
+
+            <div class="unterhaltungs-scrollbereich">
+                @foreach (UnterhaltungInfo unterhaltung in _unterhaltungen)
+                {
+                    <button type="button"
+                            class="unterhaltungs-eintrag btn @(unterhaltung.Id == _unterhaltungId ? "unterhaltungs-eintrag--aktiv" : null)"
+                            aria-pressed="@((unterhaltung.Id == _unterhaltungId).ToString().ToLowerInvariant())"
+                            aria-current="@(unterhaltung.Id == _unterhaltungId ? "page" : null)"
+                            data-unterhaltung-id="@unterhaltung.Id" disabled="@(_sendet || _laedt)"
+                            @onclick="() => LadeUnterhaltungAsync(unterhaltung.Id)">
+                        @unterhaltung.Titel
+                        <time class="d-block" datetime="@unterhaltung.ErstelltAm.ToString("O")">@unterhaltung.ErstelltAm.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                    </button>
+                }
+            </div>
         </aside>
 
+        @if (_seitenleisteOffen)
+        {
+            <button type="button" class="seitenleiste-hintergrund" aria-label="Unterhaltungen schliessen"
+                    @onclick="SchliesseSeitenleiste"></button>
+        }
+
         <div class="chat-panel">
+            <div class="chat-kopfzeile">
+                <button id="unterhaltungen-umschalten" type="button" class="unterhaltungen-umschalten"
+                        aria-controls="unterhaltungen" aria-expanded="@_seitenleisteOffen.ToString().ToLowerInvariant()"
+                        @onclick="OeffneSeitenleiste">
+                    Unterhaltungen
+                </button>
+
+                <div class="chat-hinweisbereich">
+                    <div class="chat-hinweis @(_fehler is null ? "chat-hinweis--status" : "chat-hinweis--fehler")">
+                        <p id="chat-status" role="status" aria-live="polite">@_status</p>
+                        @if (_fehler is not null)
+                        {
+                            <p role="alert">@_fehler</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
             <section id="chat-verlauf" class="chat-verlauf" aria-label="Unterhaltung" aria-live="polite" @ref="_chatVerlaufRef">
                 @if (_eintraege.Count == 0)
                 {
@@ -74,12 +112,6 @@
                 </div>
             </div>
 
-            <p id="chat-status" class="chat-status">@_status</p>
-
-            @if (_fehler is not null)
-            {
-                <p class="alert alert-danger" role="alert">@_fehler</p>
-            }
         </div>
     </div>
 </div>
@@ -112,66 +144,6 @@
             _letzteNachrichtenAnzahl = nachrichtenAnzahl;
             await JS.InvokeVoidAsync("eval", "const el = document.getElementById('chat-verlauf'); if (el) { el.scrollTop = el.scrollHeight; }");
         }
-    }
-
-    private async Task LadeUnterhaltungAsync(Guid id)
-    {
-        if (_sendet || _laedt)
-        {
-            return;
-        }
-
-        _laedt = true;
-        _fehler = null;
-        _status = "Unterhaltung wird geladen …";
-        try
-        {
-            Unterhaltung u = await ChatService.OeffneUnterhaltungAsync(id, _lebenszyklus.Token);
-            _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
-            ZeigeUnterhaltung(u);
-            _status = "Bereit";
-        }
-        catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
-        {
-            // Die verlassene Seite benötigt kein Ladeergebnis mehr.
-        }
-        catch (KeyNotFoundException)
-        {
-            _fehler = "Die Unterhaltung ist nicht mehr vorhanden.";
-            _status = "Störung";
-        }
-        catch (Exception)
-        {
-            _fehler = "Die Unterhaltung konnte nicht geladen werden. Bitte erneut versuchen.";
-            _status = "Störung";
-        }
-        finally
-        {
-            _laedt = false;
-        }
-    }
-
-    private void ZeigeUnterhaltung(Unterhaltung u)
-    {
-        _eintraege.Clear();
-        foreach (Nachricht n in u.Nachrichten)
-        {
-            _eintraege.Add(new ChatEintrag(true, n.Text));
-            _eintraege.Add(new ChatEintrag(false, n.Antwort.Text)
-            {
-                Zustandsmeldung = n.Antwort.Zustand switch
-                {
-                    AntwortZustand.Abgebrochen => "Antwort abgebrochen",
-                    AntwortZustand.Gestoert => $"Antwort gestört: {n.Antwort.Grund}",
-                    AntwortZustand.Fertig => "Antwort fertig",
-                    AntwortZustand.Laeuft => "Antwort läuft",
-                    _ => "Antwort angefordert"
-                }
-            });
-        }
-        _unterhaltungId = u.Id;
-        _eingabe = string.Empty;
-        _letzteNachrichtenAnzahl = -1;
     }
 
     private async Task SendeAsync()
@@ -263,22 +235,6 @@
         _lebenszyklus.Cancel();
         _lebenszyklus.Dispose();
         return ValueTask.CompletedTask;
-    }
-
-    private async Task AktualisiereListeAsync()
-    {
-        try
-        {
-            _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
-        }
-        catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
-        {
-            // Die verlassene Seite benötigt keine aktualisierte Liste mehr.
-        }
-        catch (Exception)
-        {
-            _fehler = "Die Unterhaltungsliste konnte nicht aktualisiert werden.";
-        }
     }
 
     private sealed class ChatEintrag(bool istBenutzer, string text)
