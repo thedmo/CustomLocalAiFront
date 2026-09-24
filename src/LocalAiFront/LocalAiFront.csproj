@@ -13,4 +13,10 @@
     <ProjectReference Include="../Chat.Adapter.ModelRunner/Chat.Adapter.ModelRunner.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="resources\system_prompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

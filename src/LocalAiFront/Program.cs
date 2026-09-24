@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-Konfiguration chatKonfiguration = LadeChatKonfiguration(builder.Configuration);
+Konfiguration chatKonfiguration = LadeChatKonfiguration(builder.Configuration, builder.Environment);
 chatKonfiguration.Pruefen();
 builder.Services.AddSingleton(chatKonfiguration);
 if (string.IsNullOrWhiteSpace(chatKonfiguration.SpeicherortDb))
@@ -53,9 +53,18 @@ app.MapRazorComponents<App>()
 
 app.Run();
 
-static Konfiguration LadeChatKonfiguration(IConfiguration configuration)
+static Konfiguration LadeChatKonfiguration(IConfiguration configuration, IWebHostEnvironment environment)
 {
     Konfiguration standard = new();
+    string systemPrompt = Konfiguration.NormalisiereText(configuration["SYSTEM_PROMPT"]);
+    if (string.IsNullOrEmpty(systemPrompt))
+    {
+        string promptPfad = Path.Combine(AppContext.BaseDirectory, "resources", "system_prompt.txt");
+        if (File.Exists(promptPfad))
+        {
+            systemPrompt = File.ReadAllText(promptPfad).Trim();
+        }
+    }
     string temperaturWert = Konfiguration.NormalisiereText(configuration["TEMPERATURE"], standard.Temperatur.ToString(CultureInfo.InvariantCulture));
     string maxAntwortWert = Konfiguration.NormalisiereText(configuration["MAX_OUTPUT_LENGTH"], standard.MaximaleAntwortlaenge.ToString(CultureInfo.InvariantCulture));
     string maxEingabeWert = Konfiguration.NormalisiereText(configuration["MAX_INPUT_LENGTH"], standard.Eingabegrenze.ToString(CultureInfo.InvariantCulture));
@@ -65,7 +74,7 @@ static Konfiguration LadeChatKonfiguration(IConfiguration configuration)
     {
         AdresseModellserver = Konfiguration.NormalisiereText(configuration["MODEL_RUNNER_URL"]),
         Modellname = Konfiguration.NormalisiereText(configuration["MODEL_NAME"]),
-        Systemanweisung = Konfiguration.NormalisiereText(configuration["SYSTEM_PROMPT"], standard.Systemanweisung),
+        Systemanweisung = string.IsNullOrEmpty(systemPrompt) ? standard.Systemanweisung : systemPrompt,
         Temperatur = double.TryParse(temperaturWert, NumberStyles.Float, CultureInfo.InvariantCulture, out double temperatur)
             ? temperatur
             : standard.Temperatur,
