@@ -32,8 +32,8 @@ Die Chat-Seite zeigt bei ungueltiger Eingabe und technischen Stoerungen eine ver
 
 ## 3. Betroffene Komponenten und Dateien
 
-- `src/LocalAiFront/Components/Pages/Home.razor`: Hinweis am deaktivierten Senden-Knopf, Zeichenzaehler, `maxlength="4000"`, Entfernung der gruenen Bereit-Statuspunktanzeige.
-- `src/LocalAiFront/Components/Pages/Home.razor.css`: Layout und Darstellung des Zeichenzaehlers sowie Bereinigung der nicht mehr benoetigten Statuspunktdarstellung.
+- `src/LocalAiFront/Components/Pages/Home.razor`: Hinweis am deaktivierten Senden-Knopf, Zeichenzaehler, `maxlength="4000"`, Statuspunktdarstellung und Statusmeldung bei Stoerungen.
+- `src/LocalAiFront/Components/Pages/Home.razor.css`: Layout und Darstellung des Zeichenzaehlers anpassung der  Statuspunktdarstellung.
 - `tests/Chat.Tests/ChatSeiteTests.cs`: Komponententests fuer Hinweis, Zaehler, Eingabegrenze und Statusanzeige.
 - `agent/Testfaelle.md`: nach AP11-Vorgabe neue nummerierte UI-Testfaelle T13 bis T15 ergaenzen.
 - `agent/protokolle/KI-Einsatz.md`: Umsetzung der Karte dokumentieren.
@@ -44,7 +44,7 @@ Die Chat-Seite zeigt bei ungueltiger Eingabe und technischen Stoerungen eine ver
 - [ ] Bei leerem Eingabefeld bleibt Senden deaktiviert; beim Hover und Fokus ueber dem deaktivierten Senden-Bereich ist ein Hinweis wie `Bitte erst Nachricht eingeben.` erreichbar. Der Hinweis ist auch fuer assistive Technologien verstaendlich zugeordnet.
 - [ ] Das Eingabefeld hat `maxlength="4000"`; 4000 Zeichen ist die einzige gueltige Eingabegrenze der Oberflaeche.
 - [ ] Oberhalb des Eingabefelds wird der Zaehler im Format `aktuell/4000` angezeigt und aktualisiert sich bei jeder Eingabe, zum Beispiel `0/4000` und danach `1/4000`.
-- [ ] Die Anzeige des gruenen Punktes fuer `Bereit` wird entfernt. Der Textstatus bleibt nur erhalten, soweit er fuer Status- oder Stoerungsmeldungen benoetigt wird.
+- [ ] Die Anzeige des gruenen Punktes fuer `Bereit` wird so angepasst, dass dieser auch auf rot und Fehler geht wenn generell ein Fehler oder Verbindungsunterbruch oder Verbindungsaufbau vorliegt.. Der Textstatus bleibt nur erhalten, soweit er fuer Status- oder Stoerungsmeldungen benoetigt wird.
 - [ ] Bei Modellserver-Nichterreichbarkeit, unbekanntem Modell, ungueltiger Konfiguration und Zeitueberschreitung erscheint jeweils der vom Backend gelieferte verstaendliche Grund; danach sind Eingabefeld und Senden wieder bedienbar.
 - [ ] Eine leere Eingabe und eine Eingabe ueber 4000 Zeichen loesen keinen Modellaufruf aus; der Benutzer erhaelt einen passenden Hinweis.
 - [ ] Es wird keine technische Protokolldatei angelegt oder erweitert. Die Karte dokumentiert ausdruecklich, dass F08/Z07 aktuell informativ bleiben und spaeter separat beauftragt werden muessten.
@@ -60,7 +60,7 @@ Die bestehende Schnittstelle `IChatService` wird unveraendert verwendet. Die UI 
 - Automatisiert neu, in AP11 als T13 bis T15 zu nummerieren:
   - leeres Eingabefeld zeigt den Hinweis am deaktivierten Senden-Bereich und ruft den Service nicht auf;
   - Zeichenzaehler startet mit `0/4000`, zaehlt bei Eingabe korrekt hoch und begrenzt die Eingabe bei 4000 Zeichen;
-  - Stoerfallmeldung gibt die Eingabe frei und zeigt keinen gruenen Bereit-Statuspunkt.
+  - Stoerfallmeldung gibt die Eingabe frei und 
 - Manuell: im Browser leeres Feld per Maus und Tastatur fokussieren, Zaehler bis zur Grenze pruefen, Modellserver stoppen und nach einer Stoerungsmeldung eine weitere Eingabe senden. Erwartetes und tatsaechliches Ergebnis in `agent/protokolle/Test_und_Reviewprotokoll.md` eintragen.
 - N05 wird nicht als umzusetzender Logtest ausgefuehrt, weil F08/Z07 gemaess Auftrag nur informativ bleiben.
 
