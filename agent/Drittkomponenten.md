@@ -13,8 +13,12 @@ Pflicht aus Kursunterlagen S. 13: Liste der Drittkomponenten mit Version und Liz
 | SQLitePCLRaw.bundle_e_sqlite3, core, provider.e_sqlite3, lib.e_sqlite3 | Transitive native SQLite-Anbindung des freigegebenen Providers | 2.1.12 | Apache-2.0; SQLite-Kern Public Domain | mit Anwendung, Lizenzhinweise beilegen | [Paket](https://www.nuget.org/packages/SQLitePCLRaw.bundle_e_sqlite3/2.1.12), [Lizenz](https://github.com/ericsink/SQLitePCL.raw/blob/main/LICENSE.TXT), [SQLite](https://www.sqlite.org/copyright.html) | Codex, Auflösung AP09a am 24.09.2026 |
 | xunit.v3.mtp-v2 | Tests mit Microsoft Testing Platform | 4.0.1 | Apache 2.0 | nur Entwicklung | nuget.org/packages/xunit.v3.mtp-v2 | Codex, Vorbereitung AP07 |
 | bUnit | Komponententests der Blazor-Chat-Seite | 2.9.0 | MIT | nur Entwicklung | nuget.org/packages/bunit/2.9.0 | Codex, F01; freigegeben durch PS am 23.09.2026 |
-| Docker Desktop mit Model Runner | Container, Modellserver | [Version des Referenzsystems] | Docker Subscription Service Agreement (für Ausbildung frei) | Bezugsquelle, nicht im Paket | docker.com | [ ] |
-| Modell [aus Konzept 6.8] | Sprachmodell | [Tag und Digest] | [Modelllizenz prüfen: Weitergabe, Nutzung] | [Digest und Pull-Befehl, falls Weitergabe nicht erlaubt] | Docker Hub `ai/...` oder Hugging Face | [ ] |
+| Docker / Docker Engine | Container-Laufzeit | Aktuell | Apache License 2.0 | Externe Installation | [docker.com](https://www.docker.com), [GitHub](https://github.com/docker/docker-ce) | [ ] |
+| Docker Model Runner | Lokaler Modellserver | Aktuell | Proprietär / Docker Desktop Terms | Nur auf Referenzgerät / per Docker Desktop | [Docker Docs](https://docs.docker.com) | [ ] |
+| Blazor (.NET 10) | Web-Frontend / UI | 10.0 | MIT License | Integriert im Build / SDK | [.NET Foundation / GitHub](https://github.com/dotnet/aspnetcore) | [ ] |
+| SQLite | Lokaler Datenspeicher (Store) | 3.x | Public Domain / Open Source | Im Paket (via EF Core) | [sqlite.org](https://www.sqlite.org/copyright.html) | [ ] |
+| Microsoft Phi-3.5-mini-instruct | Sprachmodell (LLM) | latest / phi3.5 | MIT License | Lokaler Download (Modellserver) | [Hugging Face / Microsoft](https://huggingface.co/microsoft/Phi-3.5-mini-instruct) | [ ] |
+| Alibaba Qwen 2.5 (z.B. 7B/1.5B) | Sprachmodell (LLM) | latest / qwen2.5 | Apache License 2.0 / Qwen License | Lokaler Download (Modellserver) | [Hugging Face / Alibaba Cloud](https://huggingface.co/Qwen) | [ ] |
 | Bootstrap (optional) | CSS-Grundgerüst | [nur wenn verwendet] | MIT | im Repository | getbootstrap.com | [ ] |
 
 ## Regeln
