@@ -104,6 +104,15 @@
   flex: 0 0 auto;
   width: 100%;
 }
+.chat-eingabe-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+  color: var(--hfu-ink-secondary);
+  font-size: 0.875rem;
+}
 .chat-eingabefeld {
   position: relative;
 }
@@ -113,10 +122,12 @@
   overflow-y: auto;
   resize: none;
 }
-.senden-button {
+.senden-bereich {
   position: absolute;
   right: 0.625rem;
   bottom: 0.625rem;
+}
+.senden-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -140,6 +151,32 @@
   border-color: var(--hfu-line);
   color: var(--hfu-muted);
   background: var(--hfu-surface);
+}
+.senden-hinweis {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  z-index: 1;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--hfu-line);
+  border-radius: var(--hfu-radius);
+  visibility: hidden;
+  color: var(--hfu-ink);
+  background: var(--hfu-white);
+  opacity: 0;
+}
+.senden-bereich:hover .senden-hinweis,
+.senden-bereich:focus .senden-hinweis,
+.senden-bereich:focus-within .senden-hinweis {
+  visibility: visible;
+  opacity: 1;
+}
+.senden-bereich:focus-visible {
+  border-radius: 999rem;
+  outline: 0.2rem solid var(--hfu-focus);
+  outline-offset: 0.15rem;
 }
 .senden-button svg {
   width: 1.35rem;
@@ -172,10 +209,12 @@
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: var(--hfu-red-dark);
 }
 .chat-statuspunkt--bereit {
   background: var(--hfu-status-ready);
+}
+.chat-statuspunkt--nicht-bereit {
+  background: var(--hfu-red-dark);
 }
 .chat-unterzeile #abbrechen {
   grid-column: 3;
