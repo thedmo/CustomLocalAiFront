@@ -17,6 +17,7 @@ public partial class Home
             _eintraege.Clear();
             _eingabe = string.Empty;
             _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
+            SchliesseSeitenleiste();
             _status = "Bereit";
         }
         catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)

@@ -406,7 +406,7 @@ Abbildung: Desktop während einer laufenden Antwort und Mobilansicht einer neuen
 
 ## Corporate-Design
 
-Logo, Farben und Schrift kommen aus den bereitgestellten Gestaltungselementen (\_Logos; Frage A1 klärt den Umfang). Farben und Schrift liegen als CSS-Variablen an einer Stelle, das Logo steht im Seitenkopf. Die Prüfung ist ein Testfall in 11.3 (M07).
+Logo, Farben, Schrift, Abstände, Interaktionszustände und Barrierefreiheit richten sich nach `agent/design/CorporateDesign.md`. Farben und Schrift liegen als CSS-Variablen an einer Stelle, das Logo steht im Seitenkopf. Die Prüfung ist ein Testfall in 11.3 (M07). Konkrete Korrekturen an Scrollbereichen, Hinweisbox und Auswahlzustand beschreibt `agent/design/20260924-001-PS-Chatoberflaeche-Layoutkorrekturen.md`.
 
 # Datenhaltung
 

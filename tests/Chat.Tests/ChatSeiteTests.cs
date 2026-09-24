@@ -83,6 +83,7 @@ public sealed class ChatSeiteTests
         Assert.Contains("Modellserver nicht erreichbar", seite.Find("[role=alert]").TextContent);
         Assert.False(seite.Find("#nachricht").HasAttribute("disabled"));
         Assert.Contains("Störung", seite.Find("#chat-status").TextContent);
+        Assert.Contains("chat-statuspunkt--nicht-bereit", seite.Find(".chat-statuspunkt").ClassList);
         Assert.Empty(service.Unterhaltungen);
     }
 
@@ -122,7 +123,12 @@ public sealed class ChatSeiteTests
         await using BunitContext context = ErzeugeKontext(service);
         IRenderedComponent<Home> seite = context.Render<Home>();
 
-        Assert.True(seite.Find("#senden").HasAttribute("disabled"));
+        AngleSharp.Dom.IElement senden = seite.Find("#senden");
+        Assert.True(senden.HasAttribute("disabled"));
+        Assert.Equal("Nachricht senden", senden.GetAttribute("aria-label"));
+        Assert.Empty(senden.TextContent.Trim());
+        Assert.Contains("chat-eingabefeld", senden.ParentElement!.ClassList);
+        Assert.Contains("chat-statuspunkt--bereit", seite.Find(".chat-statuspunkt").ClassList);
         Assert.Equal(0, service.SendeAufrufe);
     }
 
