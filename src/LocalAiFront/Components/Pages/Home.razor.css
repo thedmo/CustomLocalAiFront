@@ -249,6 +249,14 @@
   flex: 0 0 auto;
   gap: 0.5rem;
 }
+
+#neue-unterhaltung:disabled {
+  border-color: var(--hfu-line);
+  color: var(--hfu-muted);
+  background: var(--hfu-red-soft);
+  opacity: 0.65;
+}
+
 .unterhaltungs-scrollbereich {
   display: flex;
   flex: 1 1 auto;
