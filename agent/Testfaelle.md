@@ -20,6 +20,9 @@ Vorschlag als Gerüste; Rod führt die Tabelle in AP11 zu Ende und überträgt s
 | T10 | 4.7 Erweiterung 2b zu lange Eingabe | Eingabegrenze 4000 | 4001 Zeichen senden | Hinweis mit Grenze, kein Aufruf | auto | M09 |
 | T11 | Zeitüberschreitung | Zeitlimit 5 Sekunden, Modell langsam | Nachricht senden | Zustand Gestört mit Grund Zeitüberschreitung, Eingabe frei | auto (Fake mit Verzögerung) | M09 |
 | T12 | Zustandsübergänge | Fake-Adapter | je dokumentierten Übergang ein Lauf | nur die sechs erlaubten Übergänge, kein anderer | auto | M06 |
+| T13 | F06 leere Eingabe | Chat-Seite geöffnet, Eingabefeld leer | deaktivierten Senden-Bereich mit Maus oder Tastatur fokussieren | Hinweis `Bitte erst Nachricht eingeben.` ist sichtbar und assistiven Technologien zugeordnet; kein Service-Aufruf | manuell, auto (Komponente) | M09 |
+| T14 | F06 Eingabegrenze und Zeichenzaehler | Chat-Seite geöffnet | ein Zeichen und danach 4000 Zeichen eingeben; Grenze prüfen | Zaehler zeigt `0/4000`, `1/4000` und `4000/4000`; `maxlength` ist 4000; längere Eingabe wird nicht gesendet | manuell, auto (Komponente) | M09 |
+| T15 | F06 Statusanzeige nach Störfall | Fake-Service liefert jeden der vier Störfälle | Nachricht senden und nach Meldung erneut Eingabe prüfen | verständlicher Grund erscheint; Statuspunkt und Text zeigen Störung; Eingabe und Senden sind danach wieder bedienbar | manuell, auto (Komponente) | M09 |
 
 ### Ergänzende Prüfungen T06 (F05)
 

@@ -99,18 +99,18 @@
                     <textarea id="nachricht" class="form-control" rows="3" maxlength="@Eingabegrenze" placeholder="Nachricht eingeben …"
                               aria-describedby="zeichenzaehler chat-status" @bind="_eingabe" @bind:event="oninput"
                               disabled="@(_sendet || _laedt)"></textarea>
-                    <span class="senden-bereich" tabindex="@(IstEingabeLeer ? "0" : null)"
-                          aria-describedby="@(IstEingabeLeer ? "senden-hinweis" : null)">
+                    <span class="senden-bereich" tabindex="@(Eingabehinweis is not null ? "0" : null)"
+                          aria-describedby="@(Eingabehinweis is not null ? "senden-hinweis" : null)">
                         <button id="senden" type="button" class="senden-button" aria-label="Nachricht senden"
-                                title="@(IstEingabeLeer ? "Bitte erst Nachricht eingeben." : "Nachricht senden")"
-                                @onclick="SendeAsync" disabled="@(_sendet || _laedt || IstEingabeLeer)">
+                                title="@(Eingabehinweis ?? "Nachricht senden")"
+                                @onclick="SendeAsync" disabled="@(_sendet || _laedt || Eingabehinweis is not null)">
                             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <path d="M12 19V5M5 12l7-7 7 7" />
                             </svg>
                         </button>
-                        @if (IstEingabeLeer)
+                        @if (Eingabehinweis is not null)
                         {
-                            <span id="senden-hinweis" class="senden-hinweis" role="tooltip">Bitte erst Nachricht eingeben.</span>
+                            <span id="senden-hinweis" class="senden-hinweis" role="tooltip">@Eingabehinweis</span>
                         }
                     </span>
                 </div>
@@ -149,7 +149,20 @@
     private bool _abbruchAngefordert;
     private ElementReference _chatVerlaufRef;
     private int _letzteNachrichtenAnzahl;
-    private bool IstEingabeLeer => string.IsNullOrWhiteSpace(_eingabe);
+    private string? Eingabehinweis
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_eingabe))
+            {
+                return "Bitte erst Nachricht eingeben.";
+            }
+
+            return _eingabe.Length > Eingabegrenze
+                ? $"Die Nachricht darf höchstens {Eingabegrenze} Zeichen lang sein."
+                : null;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,7 +181,7 @@
 
     private async Task SendeAsync()
     {
-        if (_sendet || _laedt || IstEingabeLeer)
+        if (_sendet || _laedt || Eingabehinweis is not null)
         {
             return;
         }
