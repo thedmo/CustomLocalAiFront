@@ -46,7 +46,7 @@ public partial class Home
     {
         string titel = _unterhaltungen.FirstOrDefault(u => u.Id == _unterhaltungId)?.Titel ?? "Ausgewählte Unterhaltung";
         return JS.InvokeAsync<bool>("confirm", _lebenszyklus.Token,
-            $"«{titel}» mit allen Nachrichten und Antworten endgültig löschen?");
+            $"Möchten Sie die Unterhaltung mit dem Titel «{titel}» inkl. allen Nachrichten und Antworten endgültig löschen?");
     }
 
     private void EntferneGeloeschteAnsicht()
