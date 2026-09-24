@@ -1,0 +1,170 @@
+# Umsetzungsauftrag Design: Chatoberfläche ohne Seiten-Scrollen
+
+**Status:** Zur Freigabe und Übergabe an den umsetzenden Agenten
+
+**Art:** Design- und Bedienkorrektur, kein neuer Use Case
+
+**Verantwortlich:** PS
+
+**Datum:** 24.09.2026
+
+| Feld | Inhalt |
+|---|---|
+| Ziel | Die Chatoberfläche nutzt den verfügbaren Viewport ohne Scrollen des gesamten Fensters und stellt Verlauf, Unterhaltungsliste, Hinweise sowie Auswahl- und Löschzustände eindeutig dar. |
+| Referenzen | `agent/design/CorporateDesign.md`; `agent/bilder/20260923-001-KI-Chat-Mockup.png`; `agent/Design.md` Abschnitt UI-Konzept; `agent/StylingGuide.md` Abschnitt 8 |
+| Nachweis | N03 aus `agent/Testfaelle.md` sowie die manuellen Prüfungen in Abschnitt 7 dieses Dokuments |
+| Umfang | Präsentationsschicht in `src/LocalAiFront`, zugehörige Styles und UI-Tests |
+| Unberührt | `Chat.Core`, `Chat.Adapter.ModelRunner`, `Chat.Store.Sqlite`, Datenbank, Schnittstellen, Konfiguration und Docker-Setup |
+
+## 1. Ausgangslage
+
+Die Seite als Ganzes ist aktuell scrollbar. Der Nachrichtenbereich scrollt bereits innerhalb der Oberfläche, die Liste der Unterhaltungen jedoch noch nicht. Dadurch können Kopf, Eingabe und andere zentrale Bedienelemente aus dem sichtbaren Bereich geschoben werden.
+
+Hinweise und Fehlermeldungen erscheinen nicht an der gewünschten Stelle. Sie sollen als klar erkennbare Message-/Hinweisbox oben und horizontal zentriert angezeigt werden.
+
+Beim Klicken auf die Löschbedienung einer Unterhaltung wandert die visuelle Hervorhebung von der ausgewählten Unterhaltung zur Löschbedienung. Der Tastaturfokus auf der Löschbedienung muss sichtbar bleiben, darf aber die dauerhafte Kennzeichnung der aktuell ausgewählten Unterhaltung nicht ersetzen.
+
+## 2. Gestalterische Grundlage
+
+Die visuelle und responsive Grundlage ist das Mockup:
+
+![Mockup der Chatoberfläche mit Desktop- und Mobilansicht.](../bilder/20260923-001-KI-Chat-Mockup.png)
+
+Die verbindlichen Farben, Typografie, Abstände, Zustände, Fokusdarstellung und Regeln zur Barrierefreiheit stehen in [`CorporateDesign.md`](CorporateDesign.md). Bei Abweichungen zwischen Mockup und Corporate Design hat das Corporate Design Vorrang. Das Mockup bestimmt Struktur und Bedienidee, nicht pixelgenaue Masse oder neutrale Platzhalterfarben.
+
+## 3. Anforderungen
+
+### 3.1 Viewport und Scrollbereiche
+
+- Das Browserfenster beziehungsweise die Seite selbst darf bei den festgelegten Prüfbreiten nicht horizontal oder vertikal scrollen.
+- Kopfbereich, Eingabebereich und zentrale Aktionen bleiben sichtbar.
+- Nur inhaltlich begrenzte Bereiche dürfen bei Überlauf selbst scrollen:
+  - der Nachrichtenverlauf;
+  - das mehrzeilige Eingabefeld, sobald sein eigener Inhalt die sichtbare Höhe überschreitet;
+  - die Liste der vorhandenen Unterhaltungen.
+- Die Unterhaltungsliste erhält einen eigenen vertikalen Scrollbereich. Die Bedienung für eine neue Unterhaltung bleibt auch bei vielen Einträgen erreichbar.
+- Flex- und Grid-Container müssen mit geeigneten Mindestgrössen aufgebaut sein, damit Überlauf in den vorgesehenen Bereichen statt auf `body` oder dem Seitencontainer entsteht.
+- Es darf bei 320 CSS-Pixeln Breite kein horizontales Scrollen geben.
+
+### 3.2 Message-/Hinweisbox
+
+- Status-, Hinweis- und Fehlermeldungen erscheinen oben in der Mitte des sichtbaren Chatbereichs.
+- Die Box besitzt eine begrenzte Breite, bleibt auf kleinen Bildschirmen innerhalb der seitlichen Abstände und überdeckt keine unzugänglichen Bedienelemente.
+- Die Platzierung verursacht beim Ein- und Ausblenden keinen störenden Layoutsprung.
+- Meldungsart und Bedeutung sind durch Text und, falls verwendet, Symbol erkennbar; Farbe allein reicht nicht.
+- Statusmeldungen verwenden `aria-live="polite"`. Fehler verwenden weiterhin eine für Screenreader geeignete Alarmsemantik.
+- Tastaturfokus wird durch das Erscheinen einer Meldung nicht ungefragt verschoben.
+
+### 3.3 Auswahl und Löschen einer Unterhaltung
+
+- Die aktuell geöffnete Unterhaltung bleibt vor, während und nach einem Klick auf ihre Löschbedienung eindeutig hervorgehoben, bis die Auswahl tatsächlich geändert oder die Unterhaltung erfolgreich gelöscht wurde.
+- Die Löschbedienung erhält unabhängig davon einen sichtbaren `:focus-visible`-Rahmen. Fokus und Auswahl müssen gleichzeitig erkennbar sein.
+- Ein Klick auf die Löschbedienung ändert die aktuelle Unterhaltung nicht und löst nicht zusätzlich die Auswahlaktion des Listeneintrags aus.
+- Auswahlzustand, Tastaturfokus und Löschbestätigung werden mit getrennten CSS-Klassen beziehungsweise semantischen Attributen dargestellt.
+- Wird die ausgewählte Unterhaltung erfolgreich gelöscht, zeigt die Oberfläche anschliessend die vom bestehenden Fachablauf bestimmte neue Auswahl. Wird das Löschen abgebrochen oder schlägt es fehl, bleibt die ursprüngliche Auswahl hervorgehoben.
+- Die Lösung verwendet gültiges semantisches HTML; interaktive Elemente werden nicht ineinander verschachtelt.
+
+### 3.4 Responsive Verhalten
+
+- Desktop orientiert sich an der linken Unterhaltungsliste und dem zentralen Chatbereich des Mockups.
+- Auf kleinen Bildschirmen ist die Unterhaltungsliste ein- und ausklappbar und standardmässig geschlossen. Der Chatbereich nutzt die verfügbare Breite.
+- Eine geöffnete mobile Unterhaltungsliste besitzt einen eigenen Scrollbereich und verdeckt weder ihre Schliessbedienung noch dauerhaft die Eingabe.
+- Touch-Ziele sind ungefähr 44 mal 44 CSS-Pixel oder grösser.
+- Die Oberfläche wird mindestens bei 320, 375, 768, 1024 und 1440 CSS-Pixeln sowie bei 200 Prozent Zoom geprüft.
+
+## 4. Betroffene Dateien
+
+Vor Beginn prüft der umsetzende Agent den aktuellen Stand und passt die Liste an, ohne den fachlichen Umfang zu erweitern.
+
+- `src/LocalAiFront/Components/Pages/Home.razor`
+- `src/LocalAiFront/Components/Pages/Home.razor.css`
+- vorhandene partielle Dateien `src/LocalAiFront/Components/Pages/Home.*.cs`, soweit Auswahl, Löschen oder die mobile Seitenleiste dort bereits umgesetzt sind
+- vorhandene Chat-Seiten-Tests unter `tests/Chat.Tests`, soweit die geänderten Zustände automatisiert prüfbar sind
+- `agent/protokolle/KI-Einsatz.md`
+- diese Datei unter Abschnitt 9 Ergebnis
+
+Neue NuGet-Pakete, JavaScript-Bibliotheken oder externe Assets sind nicht vorgesehen. Bestehende Logo- und Bilddateien werden lokal verwendet.
+
+## 5. Abgrenzung
+
+- Keine Änderung an fachlichen Löschregeln oder der Auswahl einer Ersatzunterhaltung nach erfolgreichem Löschen.
+- Keine Änderung an `IChatService`, Store, Adapter, Datenbankmodell oder Migrationen.
+- Keine neuen Funktionen für Bearbeiten, Suchen, Sortieren oder Gruppieren von Unterhaltungen.
+- Keine extern geladenen Schriften, Icons, Bilder oder Dienste.
+- Kein pixelgenauer Nachbau von ChatGPT, Claude oder Gemini; übernommen werden nur vertraute Bedienmuster innerhalb des HFU Corporate Designs.
+
+## 6. Akzeptanzkriterien
+
+- [ ] Das Browserfenster bleibt bei allen Prüfbreiten ohne eigene Scrollbar.
+- [ ] Nachrichtenverlauf, mehrzeiliges Eingabefeld und Unterhaltungsliste scrollen bei Überlauf jeweils innerhalb ihres Bereichs.
+- [ ] Bei vielen Unterhaltungen bleiben „Neue Unterhaltung“ und die übrigen zentralen Bedienelemente erreichbar.
+- [ ] Die Message-/Hinweisbox erscheint oben und horizontal zentriert, ohne Fokusverlust oder störenden Layoutsprung.
+- [ ] Die ausgewählte Unterhaltung bleibt beim Fokussieren und Anklicken ihrer Löschbedienung sichtbar ausgewählt.
+- [ ] Fokus, Auswahl, Löschbestätigung, Fehler und deaktivierte Zustände sind voneinander unterscheidbar und nicht nur über Farbe vermittelt.
+- [ ] Löschen, Abbrechen des Löschens und ein Löschfehler behalten das bestehende fachliche Verhalten.
+- [ ] Die mobile Unterhaltungsliste lässt sich per Tastatur und Touch öffnen und schliessen.
+- [ ] Farben, Typografie und Abstände entsprechen `agent/design/CorporateDesign.md`.
+- [ ] Die Lösung benötigt keine neue Abhängigkeit und ändert keine Schnittstelle.
+
+## 7. Prüfungen
+
+### Automatisiert
+
+- Vorhandene Komponenten- und Service-Tests bleiben unverändert grün.
+- Falls die Zustandslogik noch nicht abgedeckt ist: Komponententest ergänzen, der eine Unterhaltung auswählt, deren Löschbedienung betätigt und prüft, dass der ausgewählte Eintrag bis zum tatsächlichen Löschergebnis semantisch ausgewählt bleibt.
+- Komponententest für Abbruch und Fehler beim Löschen: ursprüngliche Auswahl bleibt erhalten.
+- Semantische Zustände der mobilen Seitenleiste und der Hinweisbox prüfen, soweit dies ohne Layoutsimulation möglich ist.
+
+### Manuell
+
+- N03 bei 320, 375, 768, 1024 und 1440 CSS-Pixeln durchführen.
+- In jeder Breite prüfen: keine Scrollbar am gesamten Fenster; Nachrichtenverlauf und Unterhaltungsliste mit genügend Testeinträgen separat scrollbar.
+- Lange Eingabe prüfen: nur das Eingabefeld scrollt innerhalb seiner Begrenzung.
+- Hinweis, Fehler und Löschbestätigung auslösen: Box jeweils oben mittig, vollständig lesbar und ohne Layoutsprung.
+- Ausgewählte Unterhaltung löschen anklicken, Bestätigung abbrechen und einen Löschfehler auslösen: Auswahl bleibt sichtbar; Fokusrahmen der Löschbedienung bleibt ebenfalls sichtbar.
+- Tastaturprüfung mit Tab, Shift+Tab, Enter, Leertaste und Escape; anschliessend Prüfung bei 200 Prozent Zoom.
+- Erwartetes und tatsächliches Ergebnis in `agent/protokolle/Test_und_Reviewprotokoll.md` eintragen.
+
+## 8. Vorgehen für den umsetzenden Agenten
+
+1. Diese Datei, `agent/design/CorporateDesign.md`, das Mockup, `agent/StylingGuide.md`, `agent/Design.md`, `agent/Testfaelle.md` und `agent/Review_Checkliste.md` vollständig lesen.
+2. Aktuelle Dateien und vorhandene uncommittete Änderungen prüfen. Fremde Änderungen nicht überschreiben.
+3. In drei bis fünf Sätzen nennen, welche Dateien geändert werden, welche Tests folgen und was unberührt bleibt; bei mehr als einer Datei Zustimmung abwarten.
+4. Zuerst Layout und begrenzte Scrollbereiche, danach Hinweisbox, danach getrennte Auswahl-/Fokusdarstellung in kleinen Schritten umsetzen.
+5. Nach jedem Schritt `dotnet build` und `dotnet test` ausführen. Bei einem roten Lauf stoppen und mit Ausgabe berichten.
+6. `dotnet format`, Diff und Selbstprüfung nach `agent/Review_Checkliste.md` durchführen.
+7. Ergebnis in Abschnitt 9 und KI-Einsatz in `agent/protokolle/KI-Einsatz.md` dokumentieren. Die Freigabe erfolgt durch ein Gruppenmitglied.
+
+## 9. Ergebnis
+
+Vom umsetzenden Agenten nach dem vorgegebenen Berichtsformat aus `AGENTS.md` auszufüllen.
+
+Karte: Design Chatoberfläche ohne Seiten-Scrollen
+
+Umgesetzt:
+
+- [auszufüllen]
+
+Geänderte Dateien:
+
+- [auszufüllen]
+
+Nicht angefasst (bewusst):
+
+- [auszufüllen]
+
+Prüfungen:
+
+- `dotnet build`: [auszufüllen]
+- `dotnet test`: [auszufüllen]
+- `dotnet format`: [auszufüllen]
+
+Selbstprüfung (`agent/Review_Checkliste.md`):
+
+- [auszufüllen]
+
+Offen, Risiken, Befunde ausserhalb des Auftrags:
+
+- [auszufüllen]
+
+Vorschlag Commit-Nachricht: `Design: Chatoberfläche begrenzt Scrollbereiche` / `KI: Werkzeug, geprueft von XX`
