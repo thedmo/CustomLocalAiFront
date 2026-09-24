@@ -10,7 +10,8 @@
       "envFile": "${workspaceFolder}/.env",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:5288"
+        "ASPNETCORE_URLS": "http://localhost:5288",
+        "MODEL_RUNNER_URL": "http://localhost:12434/engines/v1"
       },
       "preLaunchTask": "build LocalAiFront",
       "serverReadyAction": {
