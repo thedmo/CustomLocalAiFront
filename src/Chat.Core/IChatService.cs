@@ -13,7 +13,7 @@ public interface IChatService
     /// <summary>Lädt den gespeicherten Verlauf unabhängig vom Modellserver.</summary>
     Task<Unterhaltung> OeffneUnterhaltungAsync(Guid id, CancellationToken ct);
 
-    /// <summary>Erstellt eine neue leere Unterhaltung und liefert ihre Kennung.</summary>
+    /// <summary>Reserviert die Kennung eines ungespeicherten Entwurfs.</summary>
     Task<Guid> NeueUnterhaltungAsync(CancellationToken ct);
 
     /// <summary>Sendet eine Nachricht und liefert die Antwort-ID vor dem ersten Antwortteil.</summary>

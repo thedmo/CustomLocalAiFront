@@ -6,16 +6,36 @@ namespace Chat.Tests;
 public sealed partial class ChatServiceTests
 {
     [Fact]
-    public async Task NeueUnterhaltung_SpeichertLeereUnterhaltung()
+    public async Task NeueUnterhaltung_SpeichertErstMitErsterNachricht()
     {
         SpeicherStore store = new();
         ChatService service = new(new FakeModelServerClient(), store, GueltigeKonfiguration());
 
         Guid id = await service.NeueUnterhaltungAsync(CancellationToken.None);
+        Assert.Empty(await store.ListeAsync(CancellationToken.None));
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => store.LadenAsync(id, CancellationToken.None));
+
+        AntwortLauf lauf = await service.SendeNachrichtAsync(id, "Erste Nachricht", CancellationToken.None);
+        await SammleAsync(lauf.Teile);
         Unterhaltung unterhaltung = await store.LadenAsync(id, CancellationToken.None);
 
         Assert.Equal(id, unterhaltung.Id);
-        Assert.Empty(unterhaltung.Nachrichten);
+        Assert.Equal("Erste Nachricht", Assert.Single(unterhaltung.Nachrichten).Text);
+    }
+
+    [Fact]
+    public async Task UngespeichertenEntwurf_Verwerfen_VerhindertSpaeteresSpeichern()
+    {
+        SpeicherStore store = new();
+        ChatService service = new(new FakeModelServerClient(), store, GueltigeKonfiguration());
+        Guid id = await service.NeueUnterhaltungAsync(CancellationToken.None);
+
+        await service.LoescheUnterhaltungAsync(id, CancellationToken.None);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => service.SendeNachrichtAsync(id, "Erste Nachricht", CancellationToken.None));
+        Assert.Empty(await store.ListeAsync(CancellationToken.None));
     }
 
     [Fact]

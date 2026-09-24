@@ -49,7 +49,7 @@ Die bereits dokumentierten Zielverträge als `Task LoescheUnterhaltungAsync(Guid
 ## 6. Tests
 
 - Automatisiert (T06): Bestätigen/Abbrechen, Ansicht nach Löschen, Bedienungssperre, aktive Antwort und gleichzeitiges Senden/Löschen, unbekannte Kennung, Speicherfehler und kein Modellaufruf. In isolierter SQLite-Testdatenbank vollständige Kaskade, Erhalt einer zweiten Unterhaltung und Fortbestand der Löschung nach erneutem Öffnen prüfen.
-- Manuell (T06/Z05): Fünf Unterhaltungen anlegen, Anwendung neu starten, eine über die Oberfläche löschen; vier bestehende bleiben unverändert, gelöschte bleibt nach erneutem Neustart weg. Eine automatisch neu angelegte leere Unterhaltung separat berücksichtigen. Bestätigung auch abbrechen und Löschen bei gestopptem Modellserver prüfen; vorhandene technische Protokolle bleiben erhalten.
+- Manuell (T06/Z05): Fünf Unterhaltungen anlegen, Anwendung neu starten, eine über die Oberfläche löschen; vier bestehende bleiben unverändert, gelöschte bleibt nach erneutem Neustart weg. Die Seite darf keinen zusätzlichen leeren Datensatz anlegen. Bestätigung auch abbrechen und Löschen bei gestopptem Modellserver prüfen; vorhandene technische Protokolle bleiben erhalten.
 - Bei Umsetzung: `dotnet build`, `dotnet test`, `dotnet format`; manuelle Ergebnisse ins Test- und Reviewprotokoll eintragen.
 
 ## 7. Grösse
@@ -87,7 +87,7 @@ Nicht angefasst (bewusst):
 Prüfungen:
 
 - `dotnet build CustomLocalAiFront.slnx --no-restore --disable-build-servers -m:1`: OK, 0 Warnungen, 0 Fehler.
-- `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 63 bestanden, 0 fehlgeschlagen, 1 vorhandener expliziter Integrationstest nicht ausgeführt (`ChatServiceTests.ModelRunnerClient_EchterServer_LiefertTeile`).
+- `dotnet test --project tests/Chat.Tests/Chat.Tests.csproj --no-build`: 65 bestanden, 0 fehlgeschlagen, 1 vorhandener expliziter Integrationstest nicht ausgeführt (`ChatServiceTests.ModelRunnerClient_EchterServer_LiefertTeile`).
 - `dotnet format CustomLocalAiFront.slnx --no-restore --verify-no-changes --verbosity minimal`: OK, keine Änderung erforderlich. Zuvor gefundene Feldbenennung und fehlende Klammern korrigiert.
 - `git diff --check`: OK. Neue Dateien zusätzlich gelesen; bestehender Diff auf Umfang und unveränderte Testaussagen geprüft.
 - T06/Z05 automatisiert: echte temporäre SQLite-Datei, Kaskade, fünf Originalverläufe über die Komponente, Neuinitialisierung, zwei Service-Instanzen und gezielt verzögerte konkurrierende Operationen.
@@ -127,7 +127,7 @@ Selbstprüfung (`agent/Review_Checkliste.md`), in Reihenfolge der Checkliste:
 | HTML/Beschriftung/Tastatur | Ja hinsichtlich Code; beschrifteter Button, nativer Bestätigungsdialog. Manuelle Tastaturprüfung offen. |
 | Gestaltung/CSS-Variablen | Ja; vorhandene Bootstrap-Klassen, keine neuen Farben oder CSS-Werte. |
 | Beide Fensterbreiten | Nein; kein Browser verbunden. |
-| Automatisierte Tests | Ja; 63 bestanden, 0 fehlgeschlagen; expliziter Modelltest unverändert ausgenommen. |
+| Automatisierte Tests | Ja; 65 bestanden, 0 fehlgeschlagen; expliziter Modelltest unverändert ausgenommen. |
 | Neue Logik getestet | Ja; 18 neue Fälle für Löschen, Abbruch, Fehler, Kaskade, Konkurrenz und fehlende Ersatz-Unterhaltung; keine neuen Zustandspfeile. |
 | Manuelle Tests protokolliert | Nein; ausstehender Prüfumfang samt erwartetem Ergebnis im Protokoll vermerkt. |
 | Einschränkungen dokumentiert | Ja; unten genannt, kein neues dauerhaftes Produktdefizit festgestellt. |

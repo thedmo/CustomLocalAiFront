@@ -3,7 +3,7 @@ using Chat.Core.Modelle;
 
 namespace Chat.Core;
 
-public sealed class ChatService : IChatService
+public sealed partial class ChatService : IChatService
 {
     private readonly UnterhaltungsZugriff _zugriff;
     private readonly IModelServerClient _client;
@@ -30,42 +30,12 @@ public sealed class ChatService : IChatService
     public Task LoescheUnterhaltungAsync(Guid id, CancellationToken ct) =>
         _zugriff.LoeschenAsync(_store, id, ct);
 
-    public async Task<Guid> NeueUnterhaltungAsync(CancellationToken ct)
-    {
-        Unterhaltung unterhaltung = new(
-            Guid.NewGuid(),
-            "Neue Unterhaltung",
-            DateTimeOffset.UtcNow);
-        await _store.SpeichernAsync(unterhaltung, ct);
-        return unterhaltung.Id;
-    }
-
     public async Task<AntwortLauf> SendeNachrichtAsync(Guid unterhaltungId, string text, CancellationToken ct)
     {
         PruefeEingabe(text);
         _konfiguration.Pruefen();
 
         return await _zugriff.StartenAsync(() => StarteAntwortAsync(unterhaltungId, text, ct), ct);
-    }
-
-    private async Task<AntwortLauf> StarteAntwortAsync(Guid unterhaltungId, string text, CancellationToken ct)
-    {
-        Unterhaltung unterhaltung = await _store.LadenAsync(unterhaltungId, ct);
-        Antwort antwort = new(Guid.NewGuid());
-        Nachricht nachricht = new(Guid.NewGuid(), text, DateTimeOffset.UtcNow, antwort);
-        unterhaltung.FuegeNachrichtHinzu(nachricht);
-        await _store.SpeichernAsync(unterhaltung, ct);
-
-        AktiveAnfrage anfrage = new(unterhaltung, antwort, _konfiguration.ZeitlimitSekunden, ct);
-        if (!_zugriff.Anfragen.TryAdd(antwort.Id, anfrage))
-        {
-            anfrage.Dispose();
-            throw new InvalidOperationException("Die Antwort-ID ist bereits aktiv.");
-        }
-
-        _ = BeobachteLebenszyklusAsync(anfrage);
-
-        return new AntwortLauf(antwort.Id, StreameAntwortAsync(anfrage));
     }
 
     public async Task AbbrechenAsync(Guid antwortId, CancellationToken ct)

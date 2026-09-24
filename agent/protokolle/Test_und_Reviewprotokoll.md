@@ -17,6 +17,12 @@ Stand = Commit-Kürzel oder Branch und Uhrzeit. Art = Test (manuell) oder Review
 |---|---|---|---|---|---|---|---|---|---|
 | 24.09.2026 | PS / unabhängige Reviewperson offen | Arbeitsverzeichnis F05 | Manueller Test und Code-Review ausstehend | T06/Z05, beide Fensterbreiten, Tastatur/Bestätigungsdialog, fünf Verläufe und echter Prozessneustart, Protokollerhalt; Store-/Service-Koordination | Nur bestätigte Unterhaltung vollständig entfernt; Anzahl sinkt um eins, keine automatische Ersatz-Unterhaltung; vier Originalverläufe erhalten; keine Löschung während aktiver Antwort; technische Protokolle unverändert | PS meldete beim ersten Stand eine gleichbleibende Unterhaltung mit leerem Inhalt; Ursache war die automatische Neuanlage nach erfolgreichem Löschen. Korrigierter Stand noch nicht manuell geprüft; automatisierte Nachweise stehen in der Karte | Automatische Ersatz-Unterhaltung entfernt; expliziter Regressionstest ergänzt | Manuelle Nachprüfung offen |
 
+## F03: ausstehende manuelle Nachprüfung
+
+| Datum | Person | Stand | Art | Prüfumfang | Erwartet | Tatsächlich | Mängel | Korrekturen | Nachprüfung |
+|---|---|---|---|---|---|---|---|---|---|
+| 24.09.2026 | PS / unabhängige Reviewperson offen | Arbeitsverzeichnis F03/F05 | Manueller Test und Code-Review ausstehend | T01: Seitenstart, mehrfach Neue Unterhaltung, erste Nachricht, Neustart; Liste und SQLite | Vor erster Nachricht kein neuer Listen-/Datenbankeintrag; mit erster Nachricht genau eine neue Unterhaltung, sofort sichtbar und nach Neustart erhalten | Automatisiert mit Fake-Service und echter temporärer SQLite-Datei geprüft; Core-Test bestätigt, dass die reservierte Kennung vor der ersten Nachricht nicht im Store liegt; Browserprüfung nicht durchgeführt | Manuelle visuelle Nachprüfung offen | Seitenstart und Neue Unterhaltung auf lokalen Entwurf umgestellt; Unterhaltung und erste Nachricht werden gemeinsam gespeichert; Dokumentation nachgeführt | Offen |
+
 ## Automatisierte Tests
 
 Die Läufe von `dotnet test` werden nicht hier protokolliert; der Nachweis ist die Ausgabe im Bericht der Karte und der grüne Lauf vor dem Review. Die Testfälle selbst stehen im Konzept 11.3 und in `Chat.Tests`.

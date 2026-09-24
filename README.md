@@ -85,7 +85,7 @@ dotnet run
 
 Beim ersten Start wird das Datenbankverzeichnis angelegt und die mitgelieferte Migration angewendet. Es ist kein separater Datenbankserver und kein manuelles `database update` nötig. Vor Annahme von Benutzeranfragen werden gespeicherte Antworten in Angefordert oder Laeuft auf Gestoert mit Grund «Neustart» gesetzt; vorhandener Text bleibt erhalten. Empfangene Antwortteile werden bereits während der Ausgabe gespeichert.
 
-Jeder neue Seitenstart öffnet eine neue leere Unterhaltung und zeigt zusätzlich die gespeicherten Unterhaltungen mit Titel und Datum, neueste zuerst. Auswahl lädt den gespeicherten Verlauf; Auflisten und Öffnen benötigen keinen erreichbaren Modellserver. Prerendering ist für die Chat-Seite deaktiviert, damit der Seitenstart keine doppelte Unterhaltung erzeugt.
+Jeder neue Seitenstart zeigt einen leeren lokalen Entwurf und zusätzlich die gespeicherten Unterhaltungen mit Titel und Datum, neueste zuerst. Der Entwurf erscheint erst mit der ersten gesendeten Nachricht in der Liste und in SQLite; blosses Laden der Seite oder „Neue Unterhaltung“ erzeugt keinen Datensatz. Auswahl lädt den gespeicherten Verlauf; Auflisten und Öffnen benötigen keinen erreichbaren Modellserver. Prerendering ist für die Chat-Seite deaktiviert.
 
 ### Produktion / gesamter Stack (Docker)
 

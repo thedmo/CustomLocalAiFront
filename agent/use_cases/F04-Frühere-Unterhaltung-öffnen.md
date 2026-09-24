@@ -1,6 +1,6 @@
 # Karte F04: Frühere Unterhaltung öffnen
 
-**Status:** Implementiert und automatisiert geprüft; bereit für menschliches Review. Visuelle Abnahme offen, nicht als Erledigt freigegeben.
+**Status:** Implementiert und automatisiert geprüft; F03-Seitenstart durch PS am 24.09.2026 auf einen ungespeicherten Entwurf präzisiert. Bereit für menschliches Review; visuelle Abnahme offen.
 
 | Feld | Inhalt |
 |---|---|
@@ -44,7 +44,7 @@ Store, Projektdateien und Startinitialisierung sind den AP09-Karten zugeordnet. 
 - [ ] Gespeicherte Unterhaltungen erscheinen mit Titel und Datum; die Sortierung verwendet `ErstelltAm`.
 - [ ] Die Auswahl lädt genau die gewählte Unterhaltung: Nachrichten nach `Zeit`, jeweils mit zugehöriger Antwort und gespeichertem Antwortzustand (T05).
 - [ ] Nach Neustart der Anwendung beziehungsweise des Containers sind fünf zuvor in SQLite gespeicherte Unterhaltungen weiterhin gelistet und mit ihrem Verlauf einzeln zu öffnen (Z05, Anteil F04).
-- [ ] Eine gespeicherte leere Unterhaltung lässt sich mit leerem Verlauf öffnen; der Store liefert bei leerer Datenbank eine leere Liste; die Seite ergänzt beim Start die neue leere Unterhaltung.
+- [ ] Der Store liefert bei leerer Datenbank eine leere Liste; die Seite zeigt einen lokalen leeren Entwurf und ergänzt keinen Datenbank- oder Listeneintrag.
 - [ ] Die Anzeige übernimmt die durch die Persistenzgrundlage wiederhergestellten Zustände: Nach Neustart stehen zuvor `Angefordert` oder `Laeuft` gebliebene Antworten auf `Gestoert` mit Grund «Neustart»; bereits gespeicherter Text bleibt sichtbar.
 - [ ] Auflisten und Öffnen funktionieren bei gestopptem Modellserver. Die Seite nutzt ausschliesslich `IChatService`, der Service den Store.
 - [ ] Nach Neuanlegen und erster Nachricht stimmen Liste und gespeicherter Titel überein; die aktive Hervorhebung bleibt erhalten.
@@ -54,10 +54,10 @@ Store, Projektdateien und Startinitialisierung sind den AP09-Karten zugeordnet. 
 ### Durch PS bestätigte Bedienentscheide
 
 1. Neueste Unterhaltung zuerst (`ErstelltAm` absteigend, bei Gleichstand `Id`); Nachrichten nach `Zeit` aufsteigend, danach `Id` als stabile Zweitsortierung.
-2. Seitenstart legt genau eine neue leere Unterhaltung an und aktiviert sie; zusätzlich lädt er die Liste der gespeicherten Unterhaltungen. Prerendering darf keine zweite Unterhaltung erzeugen.
+2. Durch PS am 24.09.2026 ersetzt: Der Seitenstart lädt die gespeicherte Liste und zeigt einen lokalen leeren Entwurf. Erst die erste gesendete Nachricht erzeugt genau eine gespeicherte Unterhaltung und aktiviert deren Listeneintrag.
 3. Während Laden sind Auswahl, Neuanlegen und Senden vorübergehend gesperrt; die bestehende Wechselsperre während Streaming bleibt erhalten.
 
-PS hat diese Präzisierungen bestätigt und den Seitenstart ausdrücklich auf eine neue aktive leere Unterhaltung mit gespeicherter Liste festgelegt. Vorhandene F01/F02/F03-Testaussagen bleiben erhalten.
+PS hatte den ursprünglichen Seitenstart am 23.09.2026 bestätigt und ihn am 24.09.2026 ausdrücklich präzisiert: Ohne erste Nachricht darf keine Unterhaltung gespeichert oder links angezeigt werden. Die F01/F02/F03/F04-Testaussagen wurden entsprechend nachgeführt.
 
 ## 5. Schnittstellen und Konfiguration
 
@@ -84,7 +84,8 @@ Konkrete Testzuordnung:
 | Datei | Nachweise |
 |---|---|
 | `ChatServiceUnterhaltungenTests.cs` | Zweite von zwei Unterhaltungen gezielt laden; Nachrichtenreihenfolge und Antwortzuordnung; fünf Unterhaltungen nach Neuöffnen derselben SQLite-Datei; leere Liste/leere Unterhaltung; unbekannte Kennung; Cancellation; Modell-Fake darf nie aufgerufen werden |
-| `ChatSeiteUnterhaltungenTests.cs` | Start mit genau einer neuen aktiven leeren Unterhaltung und vorhandener Liste; Titel/Datum/Sortierung; Auswahl; leerer Verlauf; gespeicherte Zustände samt Grund; aktive Hervorhebung; verzögertes Laden sperrt konkurrierende Aktionen; Fehler gibt Bedienung frei; Senden verwendet geöffnete Kennung |
+| `ChatSeiteUnterhaltungenTests.cs` | Start mit lokalem Entwurf ohne Datenbank-/Listeneintrag und vorhandener Liste; Titel/Datum/Sortierung; Auswahl; leerer Verlauf; gespeicherte Zustände samt Grund; aktive Hervorhebung; verzögertes Laden sperrt konkurrierende Aktionen; Fehler gibt Bedienung frei; Senden verwendet geöffnete Kennung |
+| `ChatSeitePersistenzTests.cs` | Leere echte SQLite-Datenbank bleibt bis zur ersten Nachricht leer; erste Nachricht erzeugt genau eine Unterhaltung; gespeicherter Verlauf bleibt nach Neuinitialisierung lesbar; kein Modellaufruf beim Öffnen |
 | `ChatSeiteTests.cs` | Bestehende F01/F02/F03-Aussagen beibehalten; nötige Auswahl oder Neuanlage explizit im Arrange-Schritt |
 
 Die Integration verwendet die temporäre Testdatenbank-Hilfe aus AP09a, keine produktiven Daten und keinen In-Memory-Ersatz für den Neustartnachweis. Neustart sowohl der Anwendung als auch des Containers manuell prüfen; Tastaturbedienung und beide Projekt-Fensterbreiten prüfen (N03). Ergebnisse erst nach tatsächlicher Durchführung protokollieren.
@@ -97,7 +98,7 @@ Geplant und durch PS bestätigt: Mi PM, höchstens ein Halbtag auf vorhandener C
 
 ## 8. Board und Freigabe
 
-PS hat AP09a/AP09b und F04 am 23.09.2026 technisch freigegeben und die Umsetzung beauftragt; Verantwortlicher PS, Halbtag Mi PM. Die Karten wurden nacheinander umgesetzt. F04 startet nach ausdrücklichem Benutzerentscheid mit einer neuen aktiven leeren Unterhaltung und der gespeicherten Liste. Am 24.09. wurde die Wiederherstellung des ausgefallenen Hauptcontainers zusätzlich beauftragt. Ein externer Board-Eintrag wurde nicht durch das Werkzeug geändert; Review und Erledigt entscheidet die Gruppe.
+PS hat AP09a/AP09b und F04 am 23.09.2026 technisch freigegeben und die Umsetzung beauftragt; Verantwortlicher PS, Halbtag Mi PM. Die Karten wurden nacheinander umgesetzt. Die F03-Präzisierung vom 24.09. ersetzt die automatische Neuanlage: F04 lädt beim Start nur die gespeicherte Liste neben dem lokalen Entwurf. Am 24.09. wurde die Wiederherstellung des ausgefallenen Hauptcontainers zusätzlich beauftragt. Ein externer Board-Eintrag wurde nicht durch das Werkzeug geändert; Review und Erledigt entscheidet die Gruppe.
 
 ---
 
@@ -106,7 +107,7 @@ PS hat AP09a/AP09b und F04 am 23.09.2026 technisch freigegeben und die Umsetzung
 Karte: F04 Frühere Unterhaltung öffnen
 
 Umgesetzt:
-- Beim Start genau eine neue leere aktive Unterhaltung, dazu die gespeicherte Liste mit Titel/Datum, neueste zuerst. Prerendering deaktiviert, um doppelte Neuanlage zu verhindern.
+- Beim Start ein lokaler leerer Entwurf ohne Persistenz, dazu die gespeicherte Liste mit Titel/Datum, neueste zuerst. Prerendering bleibt deaktiviert.
 - Auswahl lädt den SQLite-Verlauf über IChatService; gespeicherte Antwortzustände und Neustartgrund sichtbar. Leerer Verlauf, unbekannte Kennung und konkurrierende Ladeaktionen berücksichtigt.
 - Fortsetzen einer geöffneten Unterhaltung erhält den vorhandenen Verlauf. F03-Gestaltung, Streaming und Abbruch bleiben nutzbar.
 

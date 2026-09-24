@@ -56,11 +56,11 @@
             <div class="chat-eingabe">
                 <label for="nachricht" class="form-label">Nachricht</label>
                 <textarea id="nachricht" class="form-control" rows="3" maxlength="4001" placeholder="Nachricht eingeben …"
-                          @bind="_eingabe" @bind:event="oninput" disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty)"></textarea>
+                          @bind="_eingabe" @bind:event="oninput" disabled="@(_sendet || _laedt)"></textarea>
 
                 <div class="chat-aktionen">
                     <button id="senden" type="button" class="btn btn-primary" @onclick="SendeAsync"
-                            disabled="@(_sendet || _laedt || _unterhaltungId == Guid.Empty || string.IsNullOrWhiteSpace(_eingabe))">
+                            disabled="@(_sendet || _laedt || string.IsNullOrWhiteSpace(_eingabe))">
                         Senden
                     </button>
 
@@ -114,9 +114,7 @@
         }
     }
 
-    private Task NeueUnterhaltungAsync() => LadeUnterhaltungAsync(null);
-
-    private async Task LadeUnterhaltungAsync(Guid? id)
+    private async Task LadeUnterhaltungAsync(Guid id)
     {
         if (_sendet || _laedt)
         {
@@ -128,7 +126,9 @@
         _status = "Unterhaltung wird geladen …";
         try
         {
-            await LadeVerlaufAsync(id);
+            Unterhaltung u = await ChatService.OeffneUnterhaltungAsync(id, _lebenszyklus.Token);
+            _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
+            ZeigeUnterhaltung(u);
             _status = "Bereit";
         }
         catch (OperationCanceledException) when (_lebenszyklus.IsCancellationRequested)
@@ -149,14 +149,6 @@
         {
             _laedt = false;
         }
-    }
-
-    private async Task LadeVerlaufAsync(Guid? id)
-    {
-        Guid kennung = id ?? await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
-        Unterhaltung u = await ChatService.OeffneUnterhaltungAsync(kennung, _lebenszyklus.Token);
-        _unterhaltungen = await ChatService.ListeUnterhaltungenAsync(_lebenszyklus.Token);
-        ZeigeUnterhaltung(u);
     }
 
     private void ZeigeUnterhaltung(Unterhaltung u)
@@ -184,7 +176,7 @@
 
     private async Task SendeAsync()
     {
-        if (_sendet || _laedt || _unterhaltungId == Guid.Empty || string.IsNullOrWhiteSpace(_eingabe))
+        if (_sendet || _laedt || string.IsNullOrWhiteSpace(_eingabe))
         {
             return;
         }
@@ -194,15 +186,24 @@
         _fehler = null;
         _status = "Antwort wird erstellt …";
         string text = _eingabe;
+        Guid? neuAngelegt = null;
+        bool nachrichtGespeichert = false;
 
         try
         {
+            if (_unterhaltungId == Guid.Empty)
+            {
+                _unterhaltungId = await ChatService.NeueUnterhaltungAsync(_lebenszyklus.Token);
+                neuAngelegt = _unterhaltungId;
+            }
             AntwortLauf lauf = await ChatService.SendeNachrichtAsync(
               _unterhaltungId,
               text,
               _lebenszyklus.Token);
+            nachrichtGespeichert = true;
             _eingabe = string.Empty;
             _aktiveAntwortId = lauf.AntwortId;
+            await AktualisiereListeAsync();
 
             _eintraege.Add(new ChatEintrag(true, text));
             ChatEintrag antwort = new(false, string.Empty);
@@ -235,6 +236,10 @@
         }
         finally
         {
+            if (neuAngelegt is Guid id && !nachrichtGespeichert)
+            {
+                await VerwirfEntwurfAsync(id);
+            }
             await AktualisiereListeAsync();
             _aktiveAntwortId = null;
             _sendet = false;

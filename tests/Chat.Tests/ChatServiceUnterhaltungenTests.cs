@@ -13,11 +13,14 @@ public sealed class ChatServiceUnterhaltungenTests
         ArbeitsspeicherStore store = new();
         FakeModelServerClient client = new();
         ChatService service = new(client, store, new Konfiguration());
-        Guid id = await service.NeueUnterhaltungAsync(ct);
-        Guid behalten = await service.NeueUnterhaltungAsync(ct);
+        Unterhaltung zuLoeschen = new(Guid.NewGuid(), "Löschen", DateTimeOffset.UtcNow);
+        Unterhaltung zuBehalten = new(Guid.NewGuid(), "Behalten", DateTimeOffset.UtcNow.AddSeconds(1));
+        await store.SpeichernAsync(zuLoeschen, ct);
+        await store.SpeichernAsync(zuBehalten, ct);
+        Guid id = zuLoeschen.Id;
         await service.LoescheUnterhaltungAsync(id, ct);
         await service.LoescheUnterhaltungAsync(id, ct);
-        Assert.Equal(behalten, Assert.Single(await service.ListeUnterhaltungenAsync(ct)).Id);
+        Assert.Equal(zuBehalten.Id, Assert.Single(await service.ListeUnterhaltungenAsync(ct)).Id);
         await Assert.ThrowsAsync<KeyNotFoundException>(() => store.LadenAsync(id, ct));
         Assert.Equal(0, client.Aufrufe);
     }
@@ -56,7 +59,9 @@ public sealed class ChatServiceUnterhaltungenTests
         GesteuerterStore store = new();
         ChatService sendend = ErzeugeService(store);
         ChatService loeschend = ErzeugeService(store);
-        Guid id = await sendend.NeueUnterhaltungAsync(ct);
+        Unterhaltung unterhaltung = new(Guid.NewGuid(), "Test", DateTimeOffset.UtcNow);
+        store.FuegeHinzu(unterhaltung);
+        Guid id = unterhaltung.Id;
         store.BlockiereSpeichern = sendenZuerst;
         store.BlockiereLoeschen = !sendenZuerst;
         Task? loeschen = sendenZuerst ? null : loeschend.LoescheUnterhaltungAsync(id, ct);
@@ -88,7 +93,9 @@ public sealed class ChatServiceUnterhaltungenTests
         CancellationToken ct = TestContext.Current.CancellationToken;
         GesteuerterStore store = new();
         ChatService service = ErzeugeService(store);
-        Guid id = await service.NeueUnterhaltungAsync(ct);
+        Unterhaltung unterhaltung = new(Guid.NewGuid(), "Test", DateTimeOffset.UtcNow);
+        store.FuegeHinzu(unterhaltung);
+        Guid id = unterhaltung.Id;
         store.LoeschFehler = new IOException("Simulierter Speicherfehler");
         await Assert.ThrowsAsync<IOException>(() => service.LoescheUnterhaltungAsync(id, ct));
         Assert.Single(await store.ListeAsync(ct));
@@ -112,6 +119,7 @@ public sealed class ChatServiceUnterhaltungenTests
         public Exception? LoeschFehler { get; set; }
         public TaskCompletionSource Gestartet { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Freigabe { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public void FuegeHinzu(Unterhaltung unterhaltung) => _inner.FuegeHinzu(unterhaltung);
         public Task<IReadOnlyList<UnterhaltungInfo>> ListeAsync(CancellationToken ct) => _inner.ListeAsync(ct);
         public Task<Unterhaltung> LadenAsync(Guid id, CancellationToken ct) => _inner.LadenAsync(id, ct);
         public async Task SpeichernAsync(Unterhaltung unterhaltung, CancellationToken ct)

@@ -5,7 +5,6 @@ using Chat.Store.Sqlite;
 using LocalAiFront.Components.Pages;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
-
 namespace Chat.Tests;
 
 public sealed class ChatSeiteUnterhaltungenTests
@@ -14,15 +13,17 @@ public sealed class ChatSeiteUnterhaltungenTests
     public async Task Loeschen_LetzteUnterhaltung_LaesstListeLeerUndLegtKeinenErsatzAn()
     {
         FakeChatService service = new();
+        Unterhaltung gespeichert = Gespeichert();
+        service.Unterhaltungen.Add(gespeichert.Id, gespeichert);
         await using BunitContext context = Kontext(service);
         context.JSInterop.Setup<bool>("confirm", _ => true).SetResult(true);
         IRenderedComponent<Home> seite = context.Render<Home>();
-        Guid id = service.UnterhaltungId;
+        await seite.Find($"[data-unterhaltung-id='{gespeichert.Id}']").ClickAsync(new MouseEventArgs());
         await seite.Find("#unterhaltung-loeschen").ClickAsync(new MouseEventArgs());
-        Assert.False(service.Unterhaltungen.ContainsKey(id));
+        Assert.False(service.Unterhaltungen.ContainsKey(gespeichert.Id));
         Assert.Empty(seite.FindAll(".unterhaltungs-eintrag"));
         Assert.Empty(seite.FindAll(".chat-nachricht"));
-        Assert.Equal(1, service.NeueUnterhaltungAufrufe);
+        Assert.Equal(0, service.NeueUnterhaltungAufrufe);
         Assert.True(seite.Find("#unterhaltung-loeschen").HasAttribute("disabled"));
         Assert.True(seite.Find("#senden").HasAttribute("disabled"));
         Assert.False(seite.Find("#neue-unterhaltung").HasAttribute("disabled"));
@@ -32,13 +33,16 @@ public sealed class ChatSeiteUnterhaltungenTests
     public async Task Senden_InzwischenGeloeschteUnterhaltung_ZeigtHinweisOhneAbsturz()
     {
         FakeChatService service = new();
+        Unterhaltung gespeichert = Gespeichert();
+        service.Unterhaltungen.Add(gespeichert.Id, gespeichert);
         await using BunitContext context = Kontext(service);
         IRenderedComponent<Home> seite = context.Render<Home>();
-        service.Unterhaltungen.Remove(service.UnterhaltungId);
+        await seite.Find($"[data-unterhaltung-id='{gespeichert.Id}']").ClickAsync(new MouseEventArgs());
+        service.Unterhaltungen.Remove(gespeichert.Id);
         seite.Find("#nachricht").Input("Test");
         await seite.Find("#senden").ClickAsync(new MouseEventArgs());
         Assert.Contains("inzwischen gelöscht", seite.Find("[role='alert']").TextContent);
-        Assert.True(seite.Find("#senden").HasAttribute("disabled"));
+        Assert.False(seite.Find("#senden").HasAttribute("disabled"));
         Assert.Empty(seite.FindAll(".chat-nachricht"));
         Assert.False(seite.Find("#neue-unterhaltung").HasAttribute("disabled"));
         await seite.Find("#neue-unterhaltung").ClickAsync(new MouseEventArgs());
@@ -49,13 +53,15 @@ public sealed class ChatSeiteUnterhaltungenTests
     public async Task Loeschen_AktualisierungScheitert_ZeigtKeinenGeloeschtenVerlaufUndBleibtBedienbar()
     {
         FakeChatService service = new();
+        Unterhaltung gespeichert = Gespeichert();
+        service.Unterhaltungen.Add(gespeichert.Id, gespeichert);
         await using BunitContext context = Kontext(service);
         context.JSInterop.Setup<bool>("confirm", _ => true).SetResult(true);
         IRenderedComponent<Home> seite = context.Render<Home>();
-        Guid id = service.UnterhaltungId;
+        await seite.Find($"[data-unterhaltung-id='{gespeichert.Id}']").ClickAsync(new MouseEventArgs());
         service.ListenAusnahme = new IOException("Interne Details");
         await seite.Find("#unterhaltung-loeschen").ClickAsync(new MouseEventArgs());
-        Assert.False(service.Unterhaltungen.ContainsKey(id));
+        Assert.False(service.Unterhaltungen.ContainsKey(gespeichert.Id));
         Assert.Empty(seite.FindAll(".unterhaltungs-eintrag"));
         Assert.Contains("verbleibende Liste konnte nicht geladen", seite.Find("[role='alert']").TextContent);
         Assert.True(seite.Find("#senden").HasAttribute("disabled"));
@@ -72,22 +78,23 @@ public sealed class ChatSeiteUnterhaltungenTests
         FakeChatService service = new();
         Unterhaltung alt = Gespeichert();
         service.Unterhaltungen.Add(alt.Id, alt);
+        Unterhaltung behalten = new(Guid.NewGuid(), "Behalten", DateTimeOffset.UtcNow);
+        service.Unterhaltungen.Add(behalten.Id, behalten);
         await using BunitContext context = Kontext(service);
         context.JSInterop.Setup<bool>("confirm", _ => true).SetResult(bestaetigt);
         IRenderedComponent<Home> seite = context.Render<Home>();
-        Guid behalten = service.UnterhaltungId;
         await seite.Find($"[data-unterhaltung-id='{alt.Id}']").ClickAsync(new MouseEventArgs());
         await seite.Find("#unterhaltung-loeschen").ClickAsync(new MouseEventArgs());
         Assert.Contains(alt.Titel, (string)context.JSInterop.Invocations["confirm"].Single().Arguments[0]!);
-        Assert.True(service.Unterhaltungen.ContainsKey(behalten));
+        Assert.True(service.Unterhaltungen.ContainsKey(behalten.Id));
         Assert.Equal(!bestaetigt, service.Unterhaltungen.ContainsKey(alt.Id));
         Assert.Equal(bestaetigt ? alt.Id : (Guid?)null, service.ZuletztGeloescht);
-        Assert.Equal(1, service.NeueUnterhaltungAufrufe);
+        Assert.Equal(0, service.NeueUnterhaltungAufrufe);
         Assert.Equal(bestaetigt ? 1 : 2, seite.FindAll(".unterhaltungs-eintrag").Count);
         if (bestaetigt)
         {
             Assert.Empty(seite.FindAll(".chat-nachricht"));
-            Assert.Equal(behalten.ToString(), seite.Find("[aria-pressed='true']").GetAttribute("data-unterhaltung-id"));
+            Assert.Equal(behalten.Id.ToString(), seite.Find("[aria-pressed='true']").GetAttribute("data-unterhaltung-id"));
             Assert.Contains("gelöscht", seite.Find("#chat-status").TextContent);
         }
         else
@@ -100,11 +107,14 @@ public sealed class ChatSeiteUnterhaltungenTests
     public async Task Loeschen_Wartet_SperrtWeitereAktionen()
     {
         FakeChatService service = new();
+        Unterhaltung gespeichert = Gespeichert();
+        service.Unterhaltungen.Add(gespeichert.Id, gespeichert);
         TaskCompletionSource freigabe = new(TaskCreationOptions.RunContinuationsAsynchronously);
         service.LoeschVerzoegerung = freigabe.Task;
         await using BunitContext context = Kontext(service);
         context.JSInterop.Setup<bool>("confirm", _ => true).SetResult(true);
         IRenderedComponent<Home> seite = context.Render<Home>();
+        await seite.Find($"[data-unterhaltung-id='{gespeichert.Id}']").ClickAsync(new MouseEventArgs());
         seite.Find("#nachricht").Input("Test");
         Task loeschen = seite.Find("#unterhaltung-loeschen").ClickAsync(new MouseEventArgs());
         seite.WaitForAssertion(() =>
@@ -179,11 +189,11 @@ public sealed class ChatSeiteUnterhaltungenTests
         {
             context.JSInterop.Setup<bool>("confirm", _ => true).SetResult(true);
             IRenderedComponent<Home> seite = context.Render<Home>();
-            seite.WaitForAssertion(() => Assert.Equal(6, seite.FindAll(".unterhaltungs-eintrag").Count));
+            seite.WaitForAssertion(() => Assert.Equal(5, seite.FindAll(".unterhaltungs-eintrag").Count));
             await seite.Find($"[data-unterhaltung-id='{original[0].Id}']").ClickAsync(new MouseEventArgs());
             await seite.Find("#unterhaltung-loeschen").ClickAsync(new MouseEventArgs());
             Assert.Empty(seite.FindAll($"[data-unterhaltung-id='{original[0].Id}']"));
-            Assert.Equal(5, seite.FindAll(".unterhaltungs-eintrag").Count);
+            Assert.Equal(4, seite.FindAll(".unterhaltungs-eintrag").Count);
         }
         await new SqliteInitialisierung(datei).InitialisierenAsync(ct);
         SqliteStore neu = new(datei);
@@ -204,11 +214,11 @@ public sealed class ChatSeiteUnterhaltungenTests
         service.Unterhaltungen.Add(alt.Id, alt);
         await using BunitContext context = Kontext(service);
         IRenderedComponent<Home> seite = context.Render<Home>();
-        Assert.Equal(1, service.NeueUnterhaltungAufrufe);
-        Assert.Equal(2, seite.FindAll(".unterhaltungs-eintrag").Count);
+        Assert.Equal(0, service.NeueUnterhaltungAufrufe);
+        Assert.Single(seite.FindAll(".unterhaltungs-eintrag"));
         Assert.Empty(seite.FindAll(".chat-nachricht"));
-        Assert.Equal(service.UnterhaltungId.ToString(), seite.Find("[aria-pressed='true']").GetAttribute("data-unterhaltung-id"));
-        Assert.Equal("Neue Unterhaltung", seite.Find(".unterhaltungs-eintrag").ChildNodes[0].TextContent.Trim());
+        Assert.Empty(seite.FindAll("[aria-pressed='true']"));
+        Assert.Equal("Gespeicherte Frage", seite.Find(".unterhaltungs-eintrag").ChildNodes[0].TextContent.Trim());
         Assert.Contains("01.01.2026", seite.Find($"[data-unterhaltung-id='{alt.Id}'] time").TextContent);
     }
 
@@ -269,24 +279,6 @@ public sealed class ChatSeiteUnterhaltungenTests
         Assert.Contains("nicht mehr vorhanden", seite.Find("[role='alert']").TextContent);
         Assert.False(seite.Find("#neue-unterhaltung").HasAttribute("disabled"));
         Assert.Empty(seite.FindAll(".chat-nachricht"));
-    }
-
-    [Fact]
-    public async Task NeueSeite_NachNeustart_LiestEchtenSqliteVerlaufOhneModell()
-    {
-        CancellationToken ct = Xunit.TestContext.Current.CancellationToken;
-        await using SqliteTestdatenbank datei = await SqliteTestdatenbank.ErzeugeAsync();
-        Unterhaltung alt = Gespeichert();
-        await new SqliteStore(datei).SpeichernAsync(alt, ct);
-        await new SqliteInitialisierung(datei).InitialisierenAsync(ct);
-        FakeModelServerClient client = new();
-        ChatService service = new(client, new SqliteStore(datei), new Konfiguration());
-        await using BunitContext context = Kontext(service);
-        IRenderedComponent<Home> seite = context.Render<Home>();
-        seite.WaitForAssertion(() => Assert.Equal(2, seite.FindAll(".unterhaltungs-eintrag").Count));
-        await seite.Find($"[data-unterhaltung-id='{alt.Id}']").ClickAsync(new MouseEventArgs());
-        Assert.Contains("Gespeicherter Teil", seite.Find("#chat-verlauf").TextContent);
-        Assert.Equal(0, client.Aufrufe);
     }
 
     private static Unterhaltung Gespeichert()

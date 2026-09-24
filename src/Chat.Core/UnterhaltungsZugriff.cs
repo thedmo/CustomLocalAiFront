@@ -9,6 +9,7 @@ internal sealed class UnterhaltungsZugriff
     private static readonly ConditionalWeakTable<IStore, UnterhaltungsZugriff> _zugriffe = new();
     private readonly SemaphoreSlim _sperre = new(1, 1);
     public ConcurrentDictionary<Guid, AktiveAnfrage> Anfragen { get; } = new();
+    public ConcurrentDictionary<Guid, byte> Entwuerfe { get; } = new();
 
     public static UnterhaltungsZugriff FuerStore(IStore store) =>
         _zugriffe.GetValue(store, _ => new UnterhaltungsZugriff());
@@ -36,6 +37,10 @@ internal sealed class UnterhaltungsZugriff
             if (Anfragen.Values.Any(a => a.Unterhaltung.Id == id))
             {
                 throw new InvalidOperationException("Die Unterhaltung hat noch eine aktive Antwort. Bitte zuerst abbrechen oder warten.");
+            }
+            if (Entwuerfe.TryRemove(id, out _))
+            {
+                return;
             }
             await store.LoeschenAsync(id, ct);
         }

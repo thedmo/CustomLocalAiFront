@@ -83,6 +83,7 @@ public sealed class ChatSeiteTests
         Assert.Contains("Modellserver nicht erreichbar", seite.Find("[role=alert]").TextContent);
         Assert.False(seite.Find("#nachricht").HasAttribute("disabled"));
         Assert.Contains("Störung", seite.Find("#chat-status").TextContent);
+        Assert.Empty(service.Unterhaltungen);
     }
 
     [Fact]
@@ -92,6 +93,9 @@ public sealed class ChatSeiteTests
         await using BunitContext context = ErzeugeKontext(service);
         IRenderedComponent<Home> seite = context.Render<Home>();
 
+        Assert.Equal(0, service.NeueUnterhaltungAufrufe);
+        Assert.Empty(seite.FindAll(".unterhaltungs-eintrag"));
+
         seite.Find("#nachricht").Input("Erste Frage");
         Task senden = seite.Find("#senden").ClickAsync(new MouseEventArgs());
         await service.SendenGestartet;
@@ -99,14 +103,16 @@ public sealed class ChatSeiteTests
         await senden;
 
         Assert.Equal(1, service.SendeAufrufe);
+        Assert.Equal(1, service.NeueUnterhaltungAufrufe);
         Assert.Single(seite.FindAll(".unterhaltungs-eintrag"));
 
         await seite.Find("#neue-unterhaltung").ClickAsync(new MouseEventArgs());
 
-        Assert.Equal(2, service.NeueUnterhaltungAufrufe);
-        Assert.Equal(2, seite.FindAll(".unterhaltungs-eintrag").Count);
-        Assert.Single(seite.FindAll(".unterhaltungs-eintrag[aria-pressed='true']"));
-        Assert.Contains("Neue Unterhaltung", seite.Markup);
+        Assert.Equal(1, service.NeueUnterhaltungAufrufe);
+        Assert.Single(seite.FindAll(".unterhaltungs-eintrag"));
+        Assert.Empty(seite.FindAll(".unterhaltungs-eintrag[aria-pressed='true']"));
+        Assert.Empty(seite.FindAll(".chat-nachricht"));
+        Assert.False(seite.Find("#nachricht").HasAttribute("disabled"));
     }
 
     [Fact]
